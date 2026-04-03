@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Code 源码解析 — AI 编程助手如何工作</title>
+
+  <!-- Premium Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles-redesign.css">
+
+  <style>
+    :root {
+      --color-accent:       #ff6b5b;
+      --color-accent-hover: #ff8a71;
+      --color-accent-light: rgba(255, 107, 91, 0.15);
+      --color-accent-muted: #ff8a71;
+    }
+  </style>
+
+  <script src="main-redesign.js" defer></script>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="nav" id="nav">
+    <div class="progress-bar" id="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+    <div class="nav-inner">
+      <span class="nav-title">Claude Code 源码解析</span>
+      <div class="nav-dots" id="nav-dots" role="tablist">
+        <button class="nav-dot" data-target="module-1" data-tooltip="这是什么产品？" role="tab" aria-label="模块 1: 这是什么产品？"></button>
+        <button class="nav-dot" data-target="module-2" data-tooltip="核心组件" role="tab" aria-label="模块 2: 核心组件"></button>
+        <button class="nav-dot" data-target="module-3" data-tooltip="工具系统" role="tab" aria-label="模块 3: 工具系统"></button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+
+    <!-- Module 1: Introduction -->
+    <section class="module" id="module-1">
+      <div class="module-content">
+        <div class="module-header animate-in">
+          <span class="module-number">01</span>
+          <h1 class="module-title">这是什么产品？</h1>
+          <p class="module-subtitle">了解 Claude Code 的核心概念和工作原理</p>
+        </div>
+
+        <!-- Screen 1: Welcome -->
+        <div class="screen" data-screen="1">
+          <div class="content-grid">
+            <div class="text-column">
+              <h2>Claude Code 是什么？</h2>
+              <p class="highlight">
+                想象一下，你有一个超级聪明的程序员朋友，他能听懂你的话，
+                帮你写代码、查文件、修bug，甚至能解释整个项目是怎么运作的。
+              </p>
+              <p>
+                <span class="term" data-definition="AI编程助手：使用人工智能技术帮助开发者编写、理解和改进代码的工具">Claude Code</span>
+                就是这样的朋友——一个运行在终端里的 AI 编程助手。
+              </p>
+              <div class="callout">
+                <strong>💡 顿悟时刻：</strong>
+                <p>你不需要记住所有编程知识，你只需要学会如何向 AI 提问。</p>
+              </div>
+            </div>
+            <div class="visual-column">
+              <div class="terminal-demo">
+                <div class="terminal-header">
+                  <span class="dot red"></span>
+                  <span class="dot yellow"></span>
+                  <span class="dot green"></span>
+                </div>
+                <div class="terminal-body">
+                  <div class="terminal-line">
+                    <span class="prompt">$</span>
+                    <span class="command">帮我查看这个项目的结构</span>
+                  </div>
+                  <div class="terminal-line response">
+                    <span class="cursor"></span>
+                    <span class="typing-text">正在分析项目...</span>
+                  </div>
+                </div>
+              </div>
+              <p class="caption">就像和朋友聊天一样简单</p>
+            </div>
+          </div>
+          <div class="text-center" style="margin-top: var(--space-2xl);">
+            <button class="nav-button" data-next="2">
+              开始探索 <span style="font-size: 1.2em;">→</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Screen 2: Request Flow -->
+        <div class="screen" data-screen="2">
+          <div class="screen-heading">
+            <h2>当你输入命令时发生了什么？</h2>
+            <p class="subtitle">让我们追踪一个完整的请求流程</p>
+          </div>
+
+          <div class="flow-animation">
+            <div class="flow-step">
+              <div class="step-icon">👤</div>
+              <div class="step-content">
+                <h3>1. 你发送请求</h3>
+                <p>"帮我把所有的 console.log 改成 logger"</p>
+              </div>
+            </div>
+
+            <div class="flow-arrow">→</div>
+
+            <div class="flow-step">
+              <div class="step-icon">🔍</div>
+              <div class="step-content">
+                <h3>2. 理解你的意图</h3>
+                <p>Claude 分析你的需求，理解要做什么</p>
+              </div>
+            </div>
+
+            <div class="flow-arrow">→</div>
+
+            <div class="flow-step">
+              <div class="step-icon">🛠️</div>
+              <div class="step-content">
+                <h3>3. 规划行动步骤</h3>
+                <p>搜索文件 → 找到 console.log → 替换成 logger</p>
+              </div>
+            </div>
+
+            <div class="flow-arrow">→</div>
+
+            <div class="flow-step">
+              <div class="step-icon">⚡</div>
+              <div class="step-content">
+                <h3>4. 执行工具调用</h3>
+                <p>使用 Grep 搜索、Edit 修改文件</p>
+              </div>
+            </div>
+
+            <div class="flow-arrow">→</div>
+
+            <div class="flow-step">
+              <div class="step-icon">✅</div>
+              <div class="step-content">
+                <h3>5. 返回结果</h3>
+                <p>"已完成！修改了 12 个文件"</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-center" style="margin-top: var(--space-2xl);">
+            <button class="nav-button" data-next="3">
+              继续学习 <span style="font-size: 1.2em;">→</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Screen 3: Code Translation -->
+        <div class="screen" data-screen="3">
+          <div class="content-grid reverse">
+            <div class="visual-column">
+              <div class="translation-block">
+                <div class="translation-code">
+                  <span class="translation-label">TypeScript 源码</span>
+                  <div class="translation-lines">
+                    <div class="tl">async function* query(prompt) {</div>
+                    <div class="tl">  const messages = [];</div>
+                    <div class="tl">  let response = await api.call();</div>
+                    <div class="tl">  while (response.stop_reason) {</div>
+                    <div class="tl">    yield response;</div>
+                    <div class="tl">    response = await api.call();</div>
+                    <div class="tl">  }</div>
+                    <div class="tl">}</div>
+                  </div>
+                </div>
+                <div class="translation-english">
+                  <span class="translation-label">中文逐行解释</span>
+                  <div class="translation-lines">
+                    <div class="tl">定义一个可以生成多个结果的异步函数</div>
+                    <div class="tl">创建一个空数组来存储对话历史</div>
+                    <div class="tl">调用 Claude API 获取第一次响应</div>
+                    <div class="tl">只要 AI 还需要使用工具，就继续循环</div>
+                    <div class="tl">返回当前结果给用户（流式输出）</div>
+                    <div class="tl">再次调用 API，传入工具执行结果</div>
+                    <div class="tl">循环结束</div>
+                    <div class="tl">函数定义结束</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="text-column">
+              <h2>核心引擎：query 函数</h2>
+              <p>
+                这是 Claude Code 的<span class="term" data-definition="心脏：系统的核心组件，负责协调所有其他组件的工作">心脏</span>。
+                它不断地和 Claude API 对话，直到你的任务完成。
+              </p>
+              <p>
+                每次循环都像这样：AI 说"我需要用某个工具" → 系统执行工具 →
+                把结果告诉 AI → AI 继续思考下一步。
+              </p>
+              <div class="callout">
+                <strong>🎯 关键理解：</strong>
+                <p>Claude Code 不是一次性给出答案，而是通过多次对话逐步完成任务。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Screen 4: Tools Overview -->
+        <div class="screen" data-screen="4">
+          <div class="screen-heading">
+            <h2>强大的工具箱</h2>
+            <p class="subtitle">Claude Code 有 40+ 种工具可以调用</p>
+          </div>
+
+          <div class="pattern-cards">
+            <div class="pattern-card">
+              <div class="pattern-icon">📄</div>
+              <h3 class="pattern-title">文件操作</h3>
+              <p class="pattern-desc">Read、Edit、Write - 读取、编辑、创建文件，就像你手动操作一样</p>
+            </div>
+            <div class="pattern-card">
+              <div class="pattern-icon">🔍</div>
+              <h3 class="pattern-title">搜索查找</h3>
+              <p class="pattern-desc">Grep、Glob - 在代码中搜索文本，按模式查找文件</p>
+            </div>
+            <div class="pattern-card">
+              <div class="pattern-icon">⚙️</div>
+              <h3 class="pattern-title">执行命令</h3>
+              <p class="pattern-desc">Bash - 运行终端命令，安装依赖、运行测试、构建项目</p>
+            </div>
+            <div class="pattern-card">
+              <div class="pattern-icon">🌐</div>
+              <h3 class="pattern-title">网络访问</h3>
+              <p class="pattern-desc">WebSearch、WebFetch - 搜索信息、获取网页内容</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Screen 5: Chat Animation -->
+        <div class="screen" data-screen="5">
+          <div class="screen-heading">
+            <h2>组件如何协作？</h2>
+            <p class="subtitle">看看内部组件是怎么对话的</p>
+          </div>
+
+          <div class="chat-window" id="chat-demo-1">
+            <div class="chat-messages">
+              <div class="chat-message" data-sender="User">
+                <div class="chat-avatar" style="background: var(--accent-coral);">U</div>
+                <div class="chat-bubble">
+                  <span class="chat-sender">用户</span>
+                  <p>帮我把 README.md 中的标题改成中文</p>
+                </div>
+              </div>
+              <div class="chat-message" data-sender="Claude">
+                <div class="chat-avatar" style="background: var(--accent-teal);">C</div>
+                <div class="chat-bubble">
+                  <span class="chat-sender">Claude</span>
+                  <p>好的，我需要先读取 README.md 文件，找到标题位置，然后修改它。</p>
+                </div>
+              </div>
+              <div class="chat-message" data-sender="ReadTool">
+                <div class="chat-avatar" style="background: var(--accent-violet);">R</div>
+                <div class="chat-bubble">
+                  <span class="chat-sender">Read 工具</span>
+                  <p>已读取文件！找到第 3 行的标题："README"</p>
+                </div>
+              </div>
+              <div class="chat-message" data-sender="EditTool">
+                <div class="chat-avatar" style="background: var(--accent-amber);">E</div>
+                <div class="chat-bubble">
+                  <span class="chat-sender">Edit 工具</span>
+                  <p>完成！已将 "README" 替换为 "README 说明文档"</p>
+                </div>
+              </div>
+              <div class="chat-message" data-sender="Claude">
+                <div class="chat-avatar" style="background: var(--accent-teal);">C</div>
+                <div class="chat-bubble">
+                  <span class="chat-sender">Claude</span>
+                  <p>✅ 已完成！README.md 的标题已经改成中文了。</p>
+                </div>
+              </div>
+            </div>
+            <div class="chat-controls">
+              <button class="chat-btn chat-next-btn">下一步</button>
+              <button class="chat-btn chat-all-btn">播放全部</button>
+              <button class="chat-btn chat-reset-btn">重播</button>
+              <span class="chat-progress">0 / 5 条消息</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Screen 6: Summary & Quiz -->
+        <div class="screen" data-screen="6">
+          <div class="screen-heading">
+            <h2>测验时间！</h2>
+            <p class="subtitle">检验一下你的理解</p>
+          </div>
+
+          <div class="quiz-container" id="quiz-1">
+            <div class="quiz-question-block" data-correct="b" data-explanation-right="正确！QueryEngine 是协调器，负责整体流程控制。" data-explanation-wrong="不太对。QueryEngine 是协调器，Tools 是执行器。">
+              <p class="quiz-question">1. Claude Code 的核心协调器是什么？</p>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="a">
+                  <span class="quiz-option-radio"></span>
+                  <span>Tools 系统</span>
+                </button>
+                <button class="quiz-option" data-value="b">
+                  <span class="quiz-option-radio"></span>
+                  <span>QueryEngine</span>
+                </button>
+                <button class="quiz-option" data-value="c">
+                  <span class="quiz-option-radio"></span>
+                  <span>AppState</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <div class="quiz-question-block" data-correct="c" data-explanation-right="正确！Claude Code 通过多次对话逐步完成任务。" data-explanation-wrong="不是这样的。Claude Code 会循环调用 API 直到任务完成。">
+              <p class="quiz-question">2. query 函数是如何工作的？</p>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="a">
+                  <span class="quiz-option-radio"></span>
+                  <span>一次性给出所有答案</span>
+                </button>
+                <button class="quiz-option" data-value="b">
+                  <span class="quiz-option-radio"></span>
+                  <span>只调用一次 API</span>
+                </button>
+                <button class="quiz-option" data-value="c">
+                  <span class="quiz-option-radio"></span>
+                  <span>循环调用 API 直到任务完成</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <div class="quiz-question-block" data-correct="a" data-explanation-right="正确！工具是 Claude Code 执行具体操作的方式。" data-explanation-wrong="不完全是。工具是 Claude Code 执行操作的手段。">
+              <p class="quiz-question">3. 工具（Tools）的作用是什么？</p>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="a">
+                  <span class="quiz-option-radio"></span>
+                  <span>让 Claude 能够执行具体操作</span>
+                </button>
+                <button class="quiz-option" data-value="b">
+                  <span class="quiz-option-radio"></span>
+                  <span>存储对话历史</span>
+                </button>
+                <button class="quiz-option" data-value="c">
+                  <span class="quiz-option-radio"></span>
+                  <span>管理用户权限</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <div class="quiz-buttons">
+              <button class="quiz-check-btn" onclick="checkQuiz('quiz-1')">检查答案</button>
+              <button class="quiz-reset-btn" onclick="resetQuiz('quiz-1')">重置</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Module 2: Core Components -->
+    <section class="module" id="module-2">
+      <div class="module-content">
+        <div class="module-header">
+          <span class="module-number">02</span>
+          <h1 class="module-title">核心组件介绍</h1>
+          <p class="module-subtitle">认识 Claude Code 的三大核心组件</p>
+        </div>
+
+        <div class="screen">
+          <div class="screen-heading">
+            <h2>三大核心组件</h2>
+            <p class="subtitle">各司其职，协同工作</p>
+          </div>
+
+          <div class="pattern-cards">
+            <div class="pattern-card">
+              <div class="pattern-icon">🎯</div>
+              <h3 class="pattern-title">QueryEngine</h3>
+              <p class="pattern-desc"><strong>协调器</strong> - 管理整个查询流程，协调 API 调用和工具执行</p>
+            </div>
+            <div class="pattern-card">
+              <div class="pattern-icon">🔧</div>
+              <h3 class="pattern-title">Tools</h3>
+              <p class="pattern-desc"><strong>执行器</strong> - 40+ 工具让 Claude 能够执行具体操作</p>
+            </div>
+            <div class="pattern-card">
+              <div class="pattern-icon">💾</div>
+              <h3 class="pattern-title">AppState</h3>
+              <p class="pattern-desc"><strong>记忆库</strong> - 存储会话状态、权限设置、文件历史等</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="screen">
+          <div class="screen-heading">
+            <h2>组件协作流程</h2>
+            <p class="subtitle">看看它们如何协同工作</p>
+          </div>
+
+          <div class="content-grid">
+            <div class="text-column">
+              <h3>完整的协作链条</h3>
+              <p>当你输入一个命令时，三大组件是这样协作的：</p>
+              <div class="callout">
+                <strong>📊 工作流程：</strong>
+                <p>QueryEngine 接收命令 → 从 AppState 获取上下文 → 调用 Tools 执行操作 → 更新 AppState → 返回结果</p>
+              </div>
+            </div>
+            <div class="visual-column">
+              <div class="translation-block">
+                <div class="translation-code">
+                  <span class="translation-label">组件架构</span>
+                  <div class="translation-lines">
+                    <div class="tl" style="color: var(--accent-coral);">QueryEngine (协调器)</div>
+                    <div class="tl">    ↓ 管理</div>
+                    <div class="tl" style="color: var(--accent-teal);">AppState (状态存储)</div>
+                    <div class="tl">    ↓ 使用</div>
+                    <div class="tl" style="color: var(--accent-violet);">Tools (工具集合)</div>
+                  </div>
+                </div>
+                <div class="translation-english">
+                  <span class="translation-label">职责说明</span>
+                  <div class="translation-lines">
+                    <div class="tl">负责整体流程控制，决定下一步做什么</div>
+                    <div class="tl">↓</div>
+                    <div class="tl">记住所有状态，提供上下文信息</div>
+                    <div class="tl">↓</div>
+                    <div class="tl">执行具体操作（读文件、运行命令等）</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Module 3: Tool System -->
+    <section class="module" id="module-3">
+      <div class="module-content">
+        <div class="module-header">
+          <span class="module-number">03</span>
+          <h1 class="module-title">工具系统如何工作</h1>
+          <p class="module-subtitle">深入了解工具的注册、执行和权限管理</p>
+        </div>
+
+        <div class="screen">
+          <div class="screen-heading">
+            <h2>餐厅点菜系统</h2>
+            <p class="subtitle">用生活中的例子理解工具系统</p>
+          </div>
+
+          <div class="content-grid">
+            <div class="text-column">
+              <h3>工具系统就像餐厅</h3>
+              <div class="callout">
+                <strong>🍽️ 餐厅比喻：</strong>
+                <p>菜单 = 工具注册表<br>
+                点菜 = AI 选择工具<br>
+                厨师 = 工具实现<br>
+                门卫 = 权限检查<br>
+                上菜 = 返回结果</p>
+              </div>
+            </div>
+            <div class="visual-column">
+              <div class="pattern-cards">
+                <div class="pattern-card">
+                  <div class="pattern-icon">📋</div>
+                  <h3 class="pattern-title">工具注册表</h3>
+                  <p class="pattern-desc">所有可用工具的清单</p>
+                </div>
+                <div class="pattern-card">
+                  <div class="pattern-icon">🔐</div>
+                  <h3 class="pattern-title">权限检查</h3>
+                  <p class="pattern-desc">确保安全执行</p>
+                </div>
+                <div class="pattern-card">
+                  <div class="pattern-icon">⚡</div>
+                  <h3 class="pattern-title">工具执行</h3>
+                  <p class="pattern-desc">完成具体操作</p>
+                </div>
+                <div class="pattern-card">
+                  <div class="pattern-icon">📤</div>
+                  <h3 class="pattern-title">返回结果</h3>
+                  <p class="pattern-desc">告诉 AI 发生了什么</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="screen">
+          <div class="screen-heading">
+            <h2>工具调用生命周期</h2>
+            <p class="subtitle">从选择到执行的完整过程</p>
+          </div>
+
+          <div class="flow-animation">
+            <div class="flow-step">
+              <div class="step-icon">🤖</div>
+              <div class="step-content">
+                <h3>1. AI 选择工具</h3>
+                <p>"我需要用 Grep 搜索代码"</p>
+              </div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <div class="step-icon">🔍</div>
+              <div class="step-content">
+                <h3>2. 权限检查</h3>
+                <p>系统检查：允许执行吗？</p>
+              </div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <div class="step-icon">✅</div>
+              <div class="step-content">
+                <h3>3. 执行工具</h3>
+                <p>运行 Grep 命令</p>
+              </div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <div class="step-icon">📊</div>
+              <div class="step-content">
+                <h3>4. 返回结果</h3>
+                <p>"找到 15 个匹配"</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="screen">
+          <div class="screen-heading">
+            <h2>权限保护机制</h2>
+            <p class="subtitle">四层保护确保你的系统安全</p>
+          </div>
+
+          <div class="pattern-cards">
+            <div class="pattern-card">
+              <div class="pattern-icon">🛡️</div>
+              <h3 class="pattern-title">1. 输入验证</h3>
+              <p class="pattern-desc">拒绝无效或危险的输入</p>
+            </div>
+            <div class="pattern-card">
+              <div class="pattern-icon">⚙️</div>
+              <h3 class="pattern-title">2. Hooks 预检查</h3>
+              <p class="pattern-desc">用户定义的自定义规则</p>
+            </div>
+            <div class="pattern-card">
+              <div class="pattern-icon">📋</div>
+              <h3 class="pattern-title">3. 权限规则</h3>
+              <p class="pattern-desc">alwaysAllow/deny/ask 规则</p>
+            </div>
+            <div class="pattern-card">
+              <div class="pattern-icon">👤</div>
+              <h3 class="pattern-title">4. 用户确认</h3>
+              <p class="pattern-desc">危险操作需要你批准</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="screen">
+          <div class="screen-heading">
+            <h2>最终测验</h2>
+            <p class="subtitle">检验你的学习成果</p>
+          </div>
+
+          <div class="quiz-container" id="quiz-final">
+            <div class="quiz-question-block" data-correct="c" data-explanation-right="正确！权限系统有四层保护。" data-explanation-wrong="不完全是。权限系统有多层保护。">
+              <p class="quiz-question">1. 权限系统有几层保护机制？</p>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="a">
+                  <span class="quiz-option-radio"></span>
+                  <span>1 层</span>
+                </button>
+                <button class="quiz-option" data-value="b">
+                  <span class="quiz-option-radio"></span>
+                  <span>2 层</span>
+                </button>
+                <button class="quiz-option" data-value="c">
+                  <span class="quiz-option-radio"></span>
+                  <span>4 层</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <div class="quiz-question-block" data-correct="a" data-explanation-right="正确！工具注册表就像餐厅菜单。" data-explanation-wrong="不是这样的。工具注册表相当于菜单。">
+              <p class="quiz-question">2. 工具注册表（tools.ts）相当于餐厅的什么？</p>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="a">
+                  <span class="quiz-option-radio"></span>
+                  <span>菜单</span>
+                </button>
+                <button class="quiz-option" data-value="b">
+                  <span class="quiz-option-radio"></span>
+                  <span>厨房</span>
+                </button>
+                <button class="quiz-option" data-value="c">
+                  <span class="quiz-option-radio"></span>
+                  <span>门卫</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <div class="quiz-buttons">
+              <button class="quiz-check-btn" onclick="checkQuiz('quiz-final')">检查答案</button>
+              <button class="quiz-reset-btn" onclick="resetQuiz('quiz-final')">重置</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Initial page load - show first screens immediately
+    window.addEventListener('load', () => {
+      document.querySelectorAll('.module').forEach(module => {
+        const firstScreen = module.querySelector('.screen[data-screen="1"]');
+        if (firstScreen) {
+          setTimeout(() => {
+            firstScreen.style.opacity = '1';
+            firstScreen.style.transform = 'translateY(0)';
+            firstScreen.classList.add('visible');
+          }, 200);
+        }
+      });
+
+      // Show module headers
+      document.querySelectorAll('.module-header').forEach(header => {
+        setTimeout(() => {
+          header.style.opacity = '1';
+          header.style.transform = 'translateY(0)';
+        }, 300);
+      });
+    });
+  </script>
+
+</body>
+</html>

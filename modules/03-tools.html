@@ -1,0 +1,1436 @@
+<section class="module" id="module-3">
+  <div class="module-header">
+    <h2>模块 3：工具系统如何工作</h2>
+    <div class="module-meta">
+      <span class="badge">核心架构</span>
+      <span class="estimated-time">预计时间：25 分钟</span>
+    </div>
+  </div>
+
+  <div class="learning-objectives">
+    <h3>🎯 学习目标</h3>
+    <ul>
+      <li>理解 40+ 工具如何注册、发现和执行</li>
+      <li>掌握权限系统的保护机制</li>
+      <li>追踪工具调用的完整生命周期</li>
+      <li>理解 MCP 工具的集成方式</li>
+    </ul>
+  </div>
+
+  <!-- 比喻引入 -->
+  <div class="analogy-section">
+    <h3>🍽️ 比喻：高级餐厅的点菜系统</h3>
+    <div class="analogy-content">
+      <div class="analogy-visual">
+        <div class="restaurant-scene">
+          <div class="menu-card">
+            <div class="menu-title">📋 菜单（工具注册表）</div>
+            <div class="menu-items">
+              <div class="menu-item">🥗 Bash - 执行命令</div>
+              <div class="menu-item">📖 Read - 读取文件</div>
+              <div class="menu-item">✏️ Edit - 编辑文件</div>
+              <div class="menu-item">🔍 Grep - 搜索内容</div>
+              <div class="menu-item disabled" style="opacity:0.5">🍲 MCP 工具（动态加载）</div>
+            </div>
+          </div>
+          <div class="order-flow">
+            <div class="arrow">↓</div>
+            <div class="order-text">Claude 点菜</div>
+            <div class="arrow">↓</div>
+            <div class="permission-check">
+              <div class="check-icon">🔐</div>
+              <div class="check-text">权限检查</div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="kitchen">
+              <div class="chef-icon">👨‍🍳</div>
+              <div class="kitchen-text">厨房执行</div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="served-dish">🍽️ 上菜（返回结果）</div>
+          </div>
+        </div>
+      </div>
+      <div class="analogy-explanation">
+        <p>Claude Code 的工具系统就像一个高级餐厅：</p>
+        <ul>
+          <li><strong>菜单（tools.ts）</strong>：列出所有可用的"菜品"（工具）</li>
+          <li><strong>点菜（Claude）</strong>：AI 根据需求选择合适的工具</li>
+          <li><strong>权限检查（门卫）</strong>：确保操作安全，保护你的系统</li>
+          <li><strong>厨房执行（工具实现）</strong>：实际执行操作的代码</li>
+          <li><strong>上菜（返回结果）</strong>：将执行结果返回给 Claude</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 核心概念 1：工具注册 -->
+  <div class="concept-section">
+    <h3>📦 核心概念 1：工具注册表（tools.ts）</h3>
+    <p class="lead-in">
+      <code>src/tools.ts</code> 是整个工具系统的"中央菜单"，它管理着所有 40+ 内置工具的注册和发现。
+    </p>
+
+    <div class="code-explanation">
+      <div class="code-block">
+        <div class="code-header">
+          <span>src/tools.ts</span>
+          <button class="copy-btn" onclick="copyCode(this)">复制</button>
+        </div>
+        <pre><code class="language-typescript">// 工具注册：每个工具都被导入并注册
+import { BashTool } from './tools/BashTool/BashTool.js'
+import { FileReadTool } from './tools/FileReadTool/FileReadTool.js'
+import { GrepTool } from './tools/GrepTool/GrepTool.js'
+// ... 40+ 更多工具
+
+/**
+ * 获取所有基础工具（这是单一真实来源）
+ * 注意：这个列表必须与 Statsig 配置保持同步
+ * 以便系统提示可以被缓存
+ */
+export function getAllBaseTools(): Tools {
+  return [
+    AgentTool,
+    TaskOutputTool,
+    BashTool,
+    GlobTool,
+    GrepTool,
+    FileReadTool,
+    FileEditTool,
+    FileWriteTool,
+    // ... 更多工具
+  ]
+}</code></pre>
+      </div>
+
+      <div class="explanation-card">
+        <h4>🔍 代码解读</h4>
+        <ul>
+          <li><strong>集中注册</strong>：所有工具在 <code>getAllBaseTools()</code> 中注册，这是工具的"单一真实来源"</li>
+          <li><strong>条件加载</strong>：某些工具只在特定环境下加载（如 <code>USER_TYPE === 'ant'</code>）</li>
+          <li><strong>缓存同步</strong>：工具列表必须与远程配置同步，以优化性能</li>
+          <li><strong>类型安全</strong>：使用 TypeScript 的 <code>Tools</code> 类型确保所有工具符合接口</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout info">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <h4>为什么集中注册很重要？</h4>
+        <p>集中注册让系统可以：</p>
+        <ol>
+          <li><strong>统一管理</strong>：在一个地方看到所有可用工具</li>
+          <li><strong>权限控制</strong>：在工具暴露给 AI 之前进行过滤</li>
+          <li><strong>性能优化</strong>：通过缓存工具列表减少 token 消耗</li>
+          <li><strong>动态加载</strong>：根据环境和配置动态启用/禁用工具</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- 核心概念 2：工具接口 -->
+  <div class="concept-section">
+    <h3>🔧 核心概念 2：工具接口（Tool Interface）</h3>
+    <p class="lead-in">
+      每个工具都实现一个标准化的 <code>Tool</code> 接口，定义在 <code>src/Tool.ts</code> 中。这就像每个"菜品"都有标准的菜谱格式。
+    </p>
+
+    <div class="code-explanation">
+      <div class="code-block">
+        <div class="code-header">
+          <span>src/Tool.ts (简化版)</span>
+          <button class="copy-btn" onclick="copyCode(this)">复制</button>
+        </div>
+        <pre><code class="language-typescript">export type Tool&lt;Input, Output, Progress&gt; = {
+  // 基本信息
+  readonly name: string                      // 工具名称
+  aliases?: string[]                         // 别名（向后兼容）
+  searchHint?: string                        // 搜索提示（3-10词）
+
+  // Schema 定义
+  readonly inputSchema: Input                // 输入参数的 Zod schema
+  readonly inputJSONSchema?: ToolInputJSONSchema  // JSON Schema 格式
+  outputSchema?: z.ZodType&lt;unknown&gt;        // 输出 schema
+
+  // 核心方法
+  call(
+    args: z.infer&lt;Input&gt;,
+    context: ToolUseContext,
+    canUseTool: CanUseToolFn,
+    parentMessage: AssistantMessage,
+    onProgress?: ToolCallProgress&lt;Progress&gt;,
+  ): Promise&lt;ToolResult&lt;Output&gt;&gt;           // 执行工具
+
+  // 描述和权限
+  description(input: z.infer&lt;Input&gt;, options: ...): Promise&lt;string&gt;
+  checkPermissions(input: z.infer&lt;Input&gt;, context: ...): Promise&lt;PermissionResult&gt;
+
+  // 安全和并发
+  isEnabled(): boolean                       // 是否启用
+  isReadOnly(input: z.infer&lt;Input&gt;): boolean    // 是否只读
+  isDestructive?(input: z.infer&lt;Input&gt;): boolean  // 是否破坏性
+  isConcurrencySafe(input: z.infer&lt;Input&gt;): boolean  // 是否并发安全
+
+  // UI 渲染
+  renderToolUseMessage(input: ..., options: ...): React.ReactNode
+  renderToolResultMessage?(content: ..., options: ...): React.ReactNode
+
+  // 元数据
+  maxResultSizeChars: number                // 结果大小限制（字符数）
+  isMcp?: boolean                           // 是否 MCP 工具
+}</code></pre>
+      </div>
+
+      <div class="explanation-card">
+        <h4>🔍 关键方法解析</h4>
+        <table class="method-table">
+          <thead>
+            <tr>
+              <th>方法</th>
+              <th>作用</th>
+              <th>比喻</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>call()</code></td>
+              <td>执行工具的核心逻辑</td>
+              <td>厨师做菜</td>
+            </tr>
+            <tr>
+              <td><code>description()</code></td>
+              <td>生成工具的 AI 描述</td>
+              <td>菜单上的菜品说明</td>
+            </tr>
+            <tr>
+              <td><code>checkPermissions()</code></td>
+              <td>检查权限</td>
+              <td>门卫检查订单</td>
+            </tr>
+            <tr>
+              <td><code>renderToolUseMessage()</code></td>
+              <td>渲染工具调用 UI</td>
+              <td>厨房显示屏显示订单</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 交互演示：工具调用流程 -->
+  <div class="interactive-demo">
+    <h3>🎬 交互演示：工具调用的生命周期</h3>
+    <p>点击下方按钮，观察 Claude 如何调用工具的完整流程：</p>
+
+    <div class="demo-container">
+      <div class="chat-simulation">
+        <div class="chat-header">
+          <span class="chat-title">Claude Code 终端</span>
+        </div>
+        <div class="chat-messages" id="tool-lifecycle-chat">
+          <div class="message system">
+            <div class="message-content">
+              系统就绪。等待用户请求...
+            </div>
+          </div>
+        </div>
+        <div class="chat-controls">
+          <button class="demo-btn" onclick="simulateToolCall('read')">
+            📖 模拟 Read 工具调用
+          </button>
+          <button class="demo-btn" onclick="simulateToolCall('bash')">
+            💻 模拟 Bash 工具调用
+          </button>
+          <button class="demo-btn" onclick="simulateToolCall('grep')">
+            🔍 模拟 Grep 工具调用
+          </button>
+          <button class="demo-btn secondary" onclick="clearChat()">
+            🗑️ 清空
+          </button>
+        </div>
+      </div>
+
+      <div class="lifecycle-diagram">
+        <h4>🔄 工具调用生命周期</h4>
+        <div class="lifecycle-steps">
+          <div class="step" data-step="1">
+            <div class="step-icon">📝</div>
+            <div class="step-title">1. 用户请求</div>
+            <div class="step-desc">用户发送消息</div>
+          </div>
+          <div class="step" data-step="2">
+            <div class="step-icon">🤖</div>
+            <div class="step-title">2. AI 决策</div>
+            <div class="step-desc">Claude 选择工具</div>
+          </div>
+          <div class="step" data-step="3">
+            <div class="step-icon">🔐</div>
+            <div class="step-title">3. 权限检查</div>
+            <div class="step-desc">验证操作安全</div>
+          </div>
+          <div class="step" data-step="4">
+            <div class="step-icon">⚙️</div>
+            <div class="step-title">4. 工具执行</div>
+            <div class="step-desc">调用 tool.call()</div>
+          </div>
+          <div class="step" data-step="5">
+            <div class="step-icon">📤</div>
+            <div class="step-title">5. 返回结果</div>
+            <div class="step-desc">结果传给 Claude</div>
+          </div>
+          <div class="step" data-step="6">
+            <div class="step-icon">💬</div>
+            <div class="step-title">6. AI 响应</div>
+            <div class="step-desc">生成最终回复</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 核心概念 3：权限系统 -->
+  <div class="concept-section">
+    <h3>🔒 核心概念 3：权限系统</h3>
+    <p class="lead-in">
+      权限系统是 Claude Code 的安全网，确保 AI 不会执行危险操作。它就像餐厅的门卫，检查每个订单是否安全。
+    </p>
+
+    <div class="permission-overview">
+      <div class="permission-layers">
+        <h4>🛡️ 四层权限保护</h4>
+
+        <div class="permission-layer">
+          <div class="layer-icon">📋</div>
+          <div class="layer-content">
+            <h5>第 1 层：工具级过滤</h5>
+            <p>在工具暴露给 AI 之前，根据拒绝规则过滤工具</p>
+            <div class="code-snippet">
+              <code>filterToolsByDenyRules(tools, permissionContext)</code>
+            </div>
+          </div>
+        </div>
+
+        <div class="permission-layer">
+          <div class="layer-icon">✅</div>
+          <div class="layer-content">
+            <h5>第 2 层：输入验证</h5>
+            <p>使用 Zod schema 验证输入参数的合法性</p>
+            <div class="code-snippet">
+              <code>tool.validateInput?(input, context)</code>
+            </div>
+          </div>
+        </div>
+
+        <div class="permission-layer">
+          <div class="layer-icon">🔐</div>
+          <div class="layer-content">
+            <h5>第 3 层：权限规则检查</h5>
+            <p>检查用户的权限规则（alwaysAllow、alwaysDeny、alwaysAsk）</p>
+            <div class="code-snippet">
+              <code>tool.checkPermissions(input, context)</code>
+            </div>
+          </div>
+        </div>
+
+        <div class="permission-layer">
+          <div class="layer-icon">🤖</div>
+          <div class="layer-content">
+            <h5>第 4 层：AI 分类器（可选）</h5>
+            <p>使用机器学习模型识别危险操作</p>
+            <div class="code-snippet">
+              <code>classifyYoloAction(command, toolName)</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="permission-example">
+        <h4>📄 权限规则示例</h4>
+        <div class="code-block">
+          <div class="code-header">
+            <span>settings.json 权限配置</span>
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+          </div>
+          <pre><code class="language-json">{
+  "permissions": {
+    "alwaysAllow": [
+      "Read *.md",           // 允许读取所有 Markdown 文件
+      "Grep *.ts",           // 允许搜索 TypeScript 文件
+      "Bash git status"      // 允许执行 git status
+    ],
+    "alwaysDeny": [
+      "Bash rm -rf *",       // 禁止危险删除命令
+      "Bash :(){ :|:& };:",  // 禁止 fork 炸弹
+      "Write /etc/*"         // 禁止写入系统目录
+    ],
+    "alwaysAsk": [
+      "Bash docker*",        // 执行 Docker 命令前询问
+      "Write *prod*"         // 写入生产环境文件前询问
+    ]
+  }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout warning">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-content">
+        <h4>权限模式</h4>
+        <p>Claude Code 支持三种权限模式：</p>
+        <ul>
+          <li><strong>default</strong>：正常权限检查，需要用户确认</li>
+          <li><strong>auto</strong>：AI 自动决策，适合信任环境</li>
+          <li><strong>bypass</strong>：跳过权限检查（仅限特殊情况）</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 核心概念 4：MCP 工具集成 -->
+  <div class="concept-section">
+    <h3>🔌 核心概念 4：MCP 工具集成</h3>
+    <p class="lead-in">
+      MCP (Model Context Protocol) 工具是动态加载的外部工具，可以扩展 Claude Code 的能力。就像餐厅可以临时聘请"特邀厨师"。
+    </p>
+
+    <div class="mcp-integration">
+      <div class="mcp-flow">
+        <h4>🔄 MCP 工具加载流程</h4>
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h5>发现 MCP 服务器</h5>
+              <p>从配置文件（<code>.claude/mcp.json</code>）读取 MCP 服务器列表</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h5>连接服务器</h5>
+              <p>为每个 MCP 服务器建立连接，获取工具列表</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h5>转换工具格式</h5>
+              <p>将 MCP 工具转换为 Claude Code 的 <code>Tool</code> 接口</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-number">4</div>
+            <div class="step-content">
+              <h5>合并到工具池</h5>
+              <p>使用 <code>assembleToolPool()</code> 合并内置和 MCP 工具</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mcp-code">
+        <h4>💻 MCP 工具合并代码</h4>
+        <div class="code-block">
+          <div class="code-header">
+            <span>src/tools.ts - assembleToolPool()</span>
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+          </div>
+          <pre><code class="language-typescript">/**
+ * 组合完整的工具池（内置 + MCP）
+ * 这是内置工具和 MCP 工具合并的单一真实来源
+ */
+export function assembleToolPool(
+  permissionContext: ToolPermissionContext,
+  mcpTools: Tools,
+): Tools {
+  // 1. 获取内置工具（已根据权限过滤）
+  const builtInTools = getTools(permissionContext)
+
+  // 2. 过滤被拒绝的 MCP 工具
+  const allowedMcpTools = filterToolsByDenyRules(
+    mcpTools,
+    permissionContext
+  )
+
+  // 3. 按名称排序（内置工具在前，MCP 工具在后）
+  // 这样可以保持缓存稳定性
+  const byName = (a: Tool, b: Tool) =&gt;
+    a.name.localeCompare(b.name)
+
+  // 4. 去重（内置工具优先）
+  return uniqBy(
+    [...builtInTools].sort(byName)
+      .concat(allowedMcpTools.sort(byName)),
+    'name'
+  )
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout success">
+      <div class="callout-icon">✨</div>
+      <div class="callout-content">
+        <h4>MCP 工具的优势</h4>
+        <ul>
+          <li><strong>动态扩展</strong>：无需修改核心代码即可添加新工具</li>
+          <li><strong>权限继承</strong>：MCP 工具遵循相同的权限系统</li>
+          <li><strong>类型安全</strong>：自动转换为 TypeScript 类型</li>
+          <li><strong>缓存优化</strong>：支持工具延迟加载（defer_loading）</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 实际例子 -->
+  <div class="example-section">
+    <h3>🔨 实际例子：Read 工具的完整实现</h3>
+    <p>让我们看看一个真实工具的完整实现：</p>
+
+    <div class="example-container">
+      <div class="code-block large">
+        <div class="code-header">
+          <span>src/tools/FileReadTool/FileReadTool.ts (关键部分)</span>
+          <button class="copy-btn" onclick="copyCode(this)">复制</button>
+        </div>
+        <pre><code class="language-typescript">import { z } from 'zod/v4'
+import { buildTool, type ToolDef } from '../../Tool.js'
+
+// 1. 定义输入 Schema
+const inputSchema = lazySchema(() =&gt;
+  z.strictObject({
+    file_path: z.string().describe('要读取的文件的绝对路径'),
+    offset: z.number().optional().describe('开始读取的行号'),
+    limit: z.number().optional().describe('读取的最大行数'),
+  })
+)
+
+// 2. 实现工具
+export const FileReadTool: ToolDef&lt;typeof inputSchema, string&gt; = {
+  name: 'Read',
+  description: 'Read a file from the local filesystem',
+
+  inputSchema,
+  outputSchema: z.string(),
+
+  // 3. 实现核心调用逻辑
+  async call(args, context, canUseTool) {
+    const { file_path, offset, limit } = args
+
+    // 3.1 权限检查
+    const permission = await checkReadPermissionForTool(
+      file_path,
+      context
+    )
+    if (permission.behavior === 'deny') {
+      return permission
+    }
+
+    // 3.2 读取文件
+    const content = await readFileInRange(
+      file_path,
+      offset || 0,
+      limit || 2000
+    )
+
+    // 3.3 返回结果
+    return {
+      data: content,
+      newMessages: []
+    }
+  },
+
+  // 4. 实现权限检查
+  async checkPermissions(args, context) {
+    return await checkReadPermissionForTool(
+      args.file_path,
+      context
+    )
+  },
+
+  // 5. 安全属性
+  isReadOnly: () =&gt; true,           // 只读操作
+  isDestructive: () =&gt; false,        // 非破坏性
+  isConcurrencySafe: () =&gt; true,     // 并发安全
+
+  // 6. UI 渲染
+  renderToolUseMessage(input, options) {
+    return &lt;ReadToolUseMessage input={input} /&gt;
+  },
+
+  // 7. 元数据
+  maxResultSizeChars: Infinity,        // 结果大小限制
+  getActivityDescription(input) {
+    return `Reading ${input.file_path}`
+  }
+}
+
+// 8. 使用 buildTool 填充默认值
+export default buildTool(FileReadTool)</code></pre>
+      </div>
+
+      <div class="example-breakdown">
+        <h4>🔍 实现解析</h4>
+        <div class="breakdown-item">
+          <div class="breakdown-number">1</div>
+          <div class="breakdown-content">
+            <h5>Schema 定义</h5>
+            <p>使用 Zod 定义输入参数，提供类型安全和自动验证</p>
+          </div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-number">2</div>
+          <div class="breakdown-content">
+            <h5>工具定义对象</h5>
+            <p>实现 <code>ToolDef</code> 接口，包含所有必需和可选方法</p>
+          </div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-number">3</div>
+          <div class="breakdown-content">
+            <h5>核心调用逻辑</h5>
+            <p><code>call()</code> 方法执行实际操作：权限检查 → 读取文件 → 返回结果</p>
+          </div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-number">4</div>
+          <div class="breakdown-content">
+            <h5>权限检查</h5>
+            <p><code>checkPermissions()</code> 实现工具特定的权限逻辑</p>
+          </div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-number">5</div>
+          <div class="breakdown-content">
+            <h5>安全属性</h5>
+            <p>声明操作特性：只读、非破坏性、并发安全</p>
+          </div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-number">6</div>
+          <div class="breakdown-content">
+            <h5>UI 渲染</h5>
+            <p>提供 React 组件渲染工具调用和结果的 UI</p>
+          </div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-number">7</div>
+          <div class="breakdown-content">
+            <h5>元数据</h5>
+            <p>配置工具行为：结果大小限制、活动描述等</p>
+          </div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-number">8</div>
+          <div class="breakdown-content">
+            <h5>构建工具</h5>
+            <p>使用 <code>buildTool()</code> 填充默认值，生成完整的 <code>Tool</code> 对象</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 词汇表 -->
+  <div class="vocabulary-section">
+    <h3>📚 关键术语</h3>
+    <div class="vocabulary-grid">
+      <div class="vocabulary-card">
+        <div class="vocab-term">Tool (工具)</div>
+        <div class="vocab-definition">
+          实现 <code>Tool</code> 接口的对象，包含 <code>call()</code>、<code>description()</code> 等方法
+        </div>
+      </div>
+      <div class="vocabulary-card">
+        <div class="vocab-term">Tools (工具集)</div>
+        <div class="vocab-definition">
+          工具的只读数组类型：<code>readonly Tool[]</code>
+        </div>
+      </div>
+      <div class="vocabulary-card">
+        <div class="vocab-term">ToolDef (工具定义)</div>
+        <div class="vocab-definition">
+          部分实现的工具接口，<code>buildTool()</code> 会填充默认值
+        </div>
+      </div>
+      <div class="vocabulary-card">
+        <div class="vocab-term">ToolUseContext (工具上下文)</div>
+        <div class="vocab-definition">
+          包含工具执行所需的所有上下文信息（状态、消息、权限等）
+        </div>
+      </div>
+      <div class="vocabulary-card">
+        <div class="vocab-term">PermissionResult (权限结果)</div>
+        <div class="vocab-definition">
+          权限检查的结果，包含 <code>behavior</code>（allow/deny/ask）和 <code>updatedInput</code>
+        </div>
+      </div>
+      <div class="vocabulary-card">
+        <div class="vocab-term">MCP (Model Context Protocol)</div>
+        <div class="vocab-definition">
+          用于扩展 AI 工具能力的开放协议，支持动态加载外部工具
+        </div>
+      </div>
+      <div class="vocabulary-card">
+        <div class="vocab-term">canUseTool (可用工具函数)</div>
+        <div class="vocab-definition">
+          用于在工具执行前检查权限和获取用户确认的函数
+        </div>
+      </div>
+      <div class="vocabulary-card">
+        <div class="vocab-term">ToolResult (工具结果)</div>
+        <div class="vocab-definition">
+          工具执行的返回值，包含 <code>data</code>、<code>newMessages</code> 等字段
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 测验 -->
+  <div class="quiz-section">
+    <h3>📝 模块测验</h3>
+    <p>测试你对工具系统的理解：</p>
+
+    <div class="quiz-container">
+      <div class="quiz-question" data-question="1">
+        <div class="question-text">
+          1. Claude Code 中所有工具的注册和发现发生在哪个文件中？
+        </div>
+        <div class="quiz-options">
+          <label class="quiz-option">
+            <input type="radio" name="q1" value="a">
+            <span>A. src/Tool.ts</span>
+          </label>
+          <label class="quiz-option">
+            <input type="radio" name="q1" value="b">
+            <span>B. src/tools.ts</span>
+          </label>
+          <label class="quiz-option">
+            <input type="radio" name="q1" value="c">
+            <span>C. src/tools/BashTool/BashTool.ts</span>
+          </label>
+          <label class="quiz-option">
+            <input type="radio" name="q1" value="d">
+            <span>D. src/utils/permissions.ts</span>
+          </label>
+        </div>
+        <div class="quiz-feedback" data-correct="b">
+          ✅ 正确！<code>src/tools.ts</code> 是工具注册表，管理所有 40+ 内置工具。
+        </div>
+      </div>
+
+      <div class="quiz-question" data-question="2">
+        <div class="question-text">
+          2. 工具接口中哪个方法是实际执行工具操作的？
+        </div>
+        <div class="quiz-options">
+          <label class="quiz-option">
+            <input type="radio" name="q2" value="a">
+            <span>A. description()</span>
+          </label>
+          <label class="quiz-option">
+            <input type="radio" name="q2" value="b">
+            <span>B. checkPermissions()</span>
+          </label>
+          <label class="quiz-option">
+            <input type="radio" name="q2" value="c">
+            <span>C. call()</span>
+          </label>
+          <label class="quiz-option">
+            <input type="radio" name="q2" value="d">
+            <span>D. renderToolUseMessage()</span>
+          </label>
+        </div>
+        <div class="quiz-feedback" data-correct="c">
+          ✅ 正确！<code>call()</code> 方法执行工具的核心逻辑，就像厨师实际做菜。
+        </div>
+      </div>
+
+      <div class="quiz-question" data-question="3">
+        <div class="question-text">
+          3. 权限系统的检查顺序是什么？
+        </div>
+        <div class="quiz-options">
+          <label class="quiz-option">
+            <input type="radio" name="q3" value="a">
+            <span>A. 输入验证 → AI分类器 → 工具过滤 → 权限规则</span>
+          </label>
+          <label class="quiz-option">
+            <input type="radio" name="q3" value="b">
+            <span>B. 工具过滤 → 输入验证 → 权限规则 → AI分类器</span>
+          </label>
+          <label class="quiz-option">
+            <input type="radio" name="q3" value="c">
+            <span>C. 权限规则 → 工具过滤 → 输入验证 → AI分类器</span>
+          </label>
+          <label class="quiz-option">
+            <input type="radio" name="q3" value="d">
+            <span>D. AI分类器 → 工具过滤 → 输入验证 → 权限规则</span>
+          </label>
+        </div>
+        <div class="quiz-feedback" data-correct="b">
+          ✅ 正确！权限检查按以下顺序进行：工具过滤 → 输入验证 → 权限规则 → AI分类器（可选）。
+        </div>
+      </div>
+
+      <div class="quiz-question" data-question="4">
+        <div class="question-text">
+          4. MCP 工具和内置工具的合并是通过哪个函数实现的？
+        </div>
+        <div class="quiz-options">
+          <label class="quiz-option">
+            <input type="radio" name="q4" value="a">
+            <span>A. getAllBaseTools()</span>
+          </label>
+          <label class="quiz-option">
+            <input type="radio" name="q4" value="b">
+            <span>B. getTools()</span>
+          </label>
+          <label class="quiz-option">
+            <input type="radio" name="q4" value="c">
+            <span>C. assembleToolPool()</span>
+          </label>
+          <label class="quiz-option">
+            <input type="radio" name="q4" value="d">
+            <span>D. filterToolsByDenyRules()</span>
+          </label>
+        </div>
+        <div class="quiz-feedback" data-correct="c">
+          ✅ 正确！<code>assembleToolPool()</code> 负责合并内置工具和 MCP 工具，并进行去重和排序。
+        </div>
+      </div>
+
+      <div class="quiz-question" data-question="5">
+        <div class="question-text">
+          5. <code>buildTool()</code> 函数的主要作用是什么？
+        </div>
+        <div class="quiz-options">
+          <label class="quiz-option">
+            <input type="radio" name="q5" value="a">
+            <span>A. 创建新的工具实例</span>
+          </label>
+          <label class="quiz-option">
+            <input type="radio" name="q5" value="b">
+            <span>B. 填充工具定义的默认值</span>
+          </label>
+          <label class="quiz-option">
+            <input type="radio" name="q5" value="c">
+            <span>C. 注册工具到系统</span>
+          </label>
+          <label class="quiz-option">
+            <input type="radio" name="q5" value="d">
+            <span>D. 执行工具调用</span>
+          </label>
+        </div>
+        <div class="quiz-feedback" data-correct="b">
+          ✅ 正确！<code>buildTool()</code> 填充工具定义中的默认值（如 <code>isEnabled</code>、<code>isReadOnly</code> 等），生成完整的 <code>Tool</code> 对象。
+        </div>
+      </div>
+
+      <div class="quiz-actions">
+        <button class="quiz-btn" onclick="checkQuiz()">提交答案</button>
+        <button class="quiz-btn secondary" onclick="resetQuiz()">重置</button>
+      </div>
+
+      <div class="quiz-score" id="quiz-score"></div>
+    </div>
+  </div>
+
+  <!-- 总结 -->
+  <div class="summary-section">
+    <h3>🎓 模块总结</h3>
+    <div class="summary-content">
+      <p>在本模块中，我们学习了：</p>
+      <ul>
+        <li><strong>工具注册</strong>：<code>src/tools.ts</code> 是所有工具的中央注册表</li>
+        <li><strong>工具接口</strong>：<code>Tool</code> 接口定义了工具的标准结构</li>
+        <li><strong>权限系统</strong>：四层保护确保操作安全</li>
+        <li><strong>MCP 集成</strong>：动态加载外部工具，扩展系统能力</li>
+        <li><strong>工具生命周期</strong>：从用户请求到最终响应的完整流程</li>
+      </ul>
+
+      <div class="next-steps">
+        <h4>🚀 下一步</h4>
+        <p>在下一模块中，我们将探索<strong>消息系统</strong>，了解 Claude Code 如何管理对话历史和消息流。</p>
+        <a href="#module-4" class="next-module-link">
+          前往模块 4：消息系统 →
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    /* 模块 3 特定样式 */
+    .restaurant-scene {
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .menu-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      padding: 1.5rem;
+      color: white;
+      min-width: 250px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .menu-title {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    .menu-items {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .menu-item {
+      background: rgba(255,255,255,0.1);
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+
+    .menu-item.disabled {
+      opacity: 0.5;
+      font-style: italic;
+    }
+
+    .order-flow {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      min-width: 200px;
+    }
+
+    .order-flow .arrow {
+      font-size: 1.5rem;
+      color: #667eea;
+    }
+
+    .order-text {
+      background: #f0f4ff;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-weight: 500;
+    }
+
+    .permission-check {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #fff3cd;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: 2px solid #ffc107;
+    }
+
+    .check-icon {
+      font-size: 1.5rem;
+    }
+
+    .kitchen {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #d4edda;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: 2px solid #28a745;
+    }
+
+    .chef-icon {
+      font-size: 1.5rem;
+    }
+
+    .served-dish {
+      background: #cce5ff;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      border: 2px solid #007bff;
+      font-weight: bold;
+    }
+
+    .method-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    .method-table th,
+    .method-table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .method-table th {
+      background: #f9fafb;
+      font-weight: 600;
+    }
+
+    .method-table code {
+      background: #f3f4f6;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+
+    .chat-simulation {
+      flex: 1;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .chat-header {
+      background: #667eea;
+      color: white;
+      padding: 1rem;
+      font-weight: 600;
+    }
+
+    .chat-messages {
+      height: 400px;
+      overflow-y: auto;
+      padding: 1rem;
+      background: #f9fafb;
+    }
+
+    .message {
+      margin-bottom: 1rem;
+      padding: 0.75rem;
+      border-radius: 8px;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .message.user {
+      background: #e0e7ff;
+      margin-left: 2rem;
+    }
+
+    .message.assistant {
+      background: #f0f4ff;
+      margin-right: 2rem;
+    }
+
+    .message.system {
+      background: #fef3c7;
+      font-style: italic;
+      text-align: center;
+    }
+
+    .message.tool {
+      background: #d1fae5;
+      border-left: 4px solid #10b981;
+    }
+
+    .message-content {
+      line-height: 1.5;
+    }
+
+    .chat-controls {
+      padding: 1rem;
+      background: white;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .demo-btn {
+      padding: 0.5rem 1rem;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+
+    .demo-btn:hover {
+      background: #5568d3;
+      transform: translateY(-1px);
+    }
+
+    .demo-btn.secondary {
+      background: #9ca3af;
+    }
+
+    .lifecycle-diagram {
+      flex: 1;
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .lifecycle-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .step {
+      text-align: center;
+      padding: 1rem;
+      background: #f9fafb;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      transition: all 0.3s;
+    }
+
+    .step.active {
+      border-color: #667eea;
+      background: #e0e7ff;
+      transform: scale(1.05);
+    }
+
+    .step-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .step-title {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .step-desc {
+      font-size: 0.85rem;
+      color: #6b7280;
+    }
+
+    .permission-layers {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .permission-layer {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem;
+      background: #f9fafb;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+
+    .layer-icon {
+      font-size: 2rem;
+      flex-shrink: 0;
+    }
+
+    .layer-content h5 {
+      margin-bottom: 0.5rem;
+      color: #1f2937;
+    }
+
+    .layer-content p {
+      margin-bottom: 0.5rem;
+      color: #6b7280;
+    }
+
+    .code-snippet {
+      background: #1f2937;
+      color: #f3f4f6;
+      padding: 0.5rem 0.75rem;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+    }
+
+    .mcp-integration {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+
+    @media (max-width: 768px) {
+      .mcp-integration {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .flow-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .flow-step {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+
+    .step-number {
+      width: 32px;
+      height: 32px;
+      background: #667eea;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    .step-content h5 {
+      margin-bottom: 0.25rem;
+      color: #1f2937;
+    }
+
+    .step-content p {
+      color: #6b7280;
+      font-size: 0.9rem;
+    }
+
+    .breakdown-item {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem;
+      background: #f9fafb;
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+    }
+
+    .breakdown-number {
+      width: 32px;
+      height: 32px;
+      background: #667eea;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    .breakdown-content h5 {
+      margin-bottom: 0.25rem;
+      color: #1f2937;
+    }
+
+    .breakdown-content p {
+      color: #6b7280;
+      font-size: 0.9rem;
+    }
+  </style>
+
+  <script>
+    // 工具调用模拟
+    let currentStep = 0;
+
+    function simulateToolCall(toolType) {
+      const chat = document.getElementById('tool-lifecycle-chat');
+      const steps = document.querySelectorAll('.step');
+
+      // 重置状态
+      currentStep = 0;
+      steps.forEach(s => s.classList.remove('active'));
+
+      // 清空聊天（保留系统消息）
+      const systemMsg = chat.querySelector('.system');
+      chat.innerHTML = '';
+      if (systemMsg) {
+        chat.appendChild(systemMsg);
+      }
+
+      // 定义工具调用场景
+      const scenarios = {
+        read: {
+          user: "请读取 package.json 文件",
+          tool: "Read",
+          params: { file_path: "/Users/min/project/package.json" },
+          result: "成功读取文件内容（JSON 格式）"
+        },
+        bash: {
+          user: "运行 npm test",
+          tool: "Bash",
+          params: { command: "npm test" },
+          result: "测试运行完成，12 个测试通过"
+        },
+        grep: {
+          user: "搜索所有 TypeScript 文件中的 'TODO' 注释",
+          tool: "Grep",
+          params: { pattern: "TODO", glob: "*.ts" },
+          result: "找到 5 个文件包含 TODO 注释"
+        }
+      };
+
+      const scenario = scenarios[toolType];
+
+      // 模拟工具调用流程
+      addMessage('user', scenario.user);
+
+      setTimeout(() => {
+        activateStep(1);
+        addMessage('assistant', '我需要使用工具来帮你完成这个任务。');
+      }, 500);
+
+      setTimeout(() => {
+        activateStep(2);
+        const toolDesc = toolType === 'read' ? '读取文件' :
+                        toolType === 'bash' ? '执行命令' : '搜索内容';
+        addMessage('assistant', `我将使用 ${scenario.tool} 工具来${toolDesc}。`);
+      }, 1500);
+
+      setTimeout(() => {
+        activateStep(3);
+        addMessage('tool', `🔐 权限检查：${scenario.tool} 工具调用已授权`);
+      }, 2500);
+
+      setTimeout(() => {
+        activateStep(4);
+        const params = JSON.stringify(scenario.params, null, 2);
+        addMessage('tool', `⚙️ 调用工具：${scenario.tool}\n参数：${params}`);
+      }, 3500);
+
+      setTimeout(() => {
+        activateStep(5);
+        addMessage('tool', `📤 工具结果：${scenario.result}`);
+      }, 4500);
+
+      setTimeout(() => {
+        activateStep(6);
+        addMessage('assistant', `完成！我已经${toolType === 'read' ? '读取了' : toolType === 'bash' ? '执行了' : '搜索了'}相关内容。`);
+      }, 5500);
+    }
+
+    function addMessage(type, content) {
+      const chat = document.getElementById('tool-lifecycle-chat');
+      const msg = document.createElement('div');
+      msg.className = `message ${type}`;
+
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'message-content';
+      contentDiv.textContent = content;
+
+      msg.appendChild(contentDiv);
+      chat.appendChild(msg);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function activateStep(stepNum) {
+      const steps = document.querySelectorAll('.step');
+      steps.forEach(s => s.classList.remove('active'));
+
+      const step = document.querySelector(`.step[data-step="${stepNum}"]`);
+      if (step) {
+        step.classList.add('active');
+      }
+    }
+
+    function clearChat() {
+      const chat = document.getElementById('tool-lifecycle-chat');
+      chat.innerHTML = `
+        <div class="message system">
+          <div class="message-content">
+            系统就绪。等待用户请求...
+          </div>
+        </div>
+      `;
+
+      const steps = document.querySelectorAll('.step');
+      steps.forEach(s => s.classList.remove('active'));
+      currentStep = 0;
+    }
+
+    // 测验功能
+    function checkQuiz() {
+      const answers = {
+        q1: 'b',
+        q2: 'c',
+        q3: 'b',
+        q4: 'c',
+        q5: 'b'
+      };
+
+      let score = 0;
+      const total = Object.keys(answers).length;
+
+      for (const [question, correctAnswer] of Object.entries(answers)) {
+        const selected = document.querySelector(`input[name="${question}"]:checked`);
+        const feedback = document.querySelector(`.quiz-question[data-question="${question.replace('q', '')}"] .quiz-feedback`);
+
+        if (selected) {
+          if (selected.value === correctAnswer) {
+            score++;
+            feedback.innerHTML = '✅ ' + feedback.textContent.replace('✅ ', '');
+            feedback.style.display = 'block';
+            feedback.style.color = '#10b981';
+          } else {
+            feedback.innerHTML = '❌ ' + feedback.textContent.replace('✅ ', '');
+            feedback.style.display = 'block';
+            feedback.style.color = '#ef4444';
+          }
+        } else {
+          feedback.innerHTML = '⚠️ 请选择一个答案';
+          feedback.style.display = 'block';
+          feedback.style.color = '#f59e0b';
+        }
+      }
+
+      const scoreDiv = document.getElementById('quiz-score');
+      scoreDiv.innerHTML = `
+        <div class="score-content">
+          <div class="score-number">${score}/${total}</div>
+          <div class="score-text">${score === total ? '🎉 完美！' : score >= total * 0.6 ? '👍 不错！' : '💪 继续努力！'}</div>
+        </div>
+      `;
+      scoreDiv.style.display = 'block';
+    }
+
+    function resetQuiz() {
+      const inputs = document.querySelectorAll('.quiz-option input');
+      inputs.forEach(input => input.checked = false);
+
+      const feedbacks = document.querySelectorAll('.quiz-feedback');
+      feedbacks.forEach(feedback => feedback.style.display = 'none');
+
+      document.getElementById('quiz-score').style.display = 'none';
+    }
+
+    // 复制代码功能
+    function copyCode(button) {
+      const codeBlock = button.closest('.code-block');
+      const code = codeBlock.querySelector('code').textContent;
+
+      navigator.clipboard.writeText(code).then(() => {
+        const originalText = button.textContent;
+        button.textContent = '已复制！';
+        setTimeout(() => {
+          button.textContent = originalText;
+        }, 2000);
+      });
+    }
+  </script>
+</section>

@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Code 源码解析 — AI 编程助手如何工作</title>
+
+  <!-- Premium Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    /* ── CSS VARIABLES ─────────────────────────────────────────── */
+    :root {
+      /* PALETTE */
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #13131a;
+      --bg-tertiary: #1a1a24;
+      --bg-elevated: #222230;
+
+      --text-primary: #f4f4f5;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+
+      --accent-coral: #ff6b5b;
+      --accent-teal: #4fd1c5;
+      --accent-violet: #a78bfa;
+      --accent-amber: #fbbf24;
+
+      /* GRADIENTS */
+      --gradient-primary: linear-gradient(135deg, #ff6b5b 0%, #ff8a71 100%);
+
+      /* TYPOGRAPHY */
+      --font-display: 'Outfit', system-ui, sans-serif;
+      --font-body: 'Figtree', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+      /* SPACING */
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2rem;
+      --space-2xl: 3rem;
+      --space-3xl: 4rem;
+
+      /* BORDERS & RADIUS */
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --radius-full: 9999px;
+
+      /* SHADOWS */
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.2);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
+      --shadow-glow-coral: 0 0 40px rgba(255, 107, 91, 0.3);
+    }
+
+    /* ── RESET ─────────────────────────────────────────────────── */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.7;
+      color: var(--text-primary);
+      background: var(--bg-primary);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── NAVIGATION ─────────────────────────────────────────── */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 70px;
+      background: rgba(10, 10, 15, 0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      z-index: 1000;
+    }
+
+    .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+    }
+
+    .nav-title {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .nav-dots {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .nav-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--bg-elevated);
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .nav-dot.active {
+      background: var(--accent-coral);
+      box-shadow: 0 0 20px rgba(255, 107, 91, 0.5);
+      transform: scale(1.2);
+    }
+
+    .nav-dot.visited {
+      background: var(--accent-teal);
+    }
+
+    .progress-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      background: var(--gradient-primary);
+      transition: width 0.1s linear;
+    }
+
+    /* ── MAIN CONTENT ─────────────────────────────────────── */
+    main {
+      padding-top: 70px;
+    }
+
+    .module {
+      min-height: 100vh;
+      padding: 4rem 1.5rem;
+    }
+
+    .module-content {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .module-header {
+      margin-bottom: 3rem;
+      text-align: center;
+    }
+
+    .module-number {
+      font-family: var(--font-display);
+      font-size: 6rem;
+      font-weight: 800;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      opacity: 0.3;
+      line-height: 1;
+      margin-bottom: 1rem;
+      display: block;
+    }
+
+    .module-title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+
+    .module-subtitle {
+      font-size: 1.25rem;
+      color: var(--text-secondary);
+    }
+
+    /* ── SCREENS ───────────────────────────────────────────── */
+    .screen {
+      margin-bottom: 4rem;
+    }
+
+    .screen-heading {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .screen-heading h2 {
+      font-family: var(--font-display);
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+    }
+
+    /* ── CONTENT GRID ────────────────────────────────────── */
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    @media (min-width: 768px) {
+      .content-grid {
+        grid-template-columns: 1fr 1fr;
+        align-items: center;
+      }
+
+      .content-grid.reverse {
+        direction: rtl;
+      }
+
+      .content-grid.reverse > * {
+        direction: ltr;
+      }
+    }
+
+    /* ── TERMINAL DEMO ───────────────────────────────────── */
+    .terminal-demo {
+      background: var(--bg-secondary);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      max-width: 500px;
+    }
+
+    .terminal-header {
+      background: var(--bg-tertiary);
+      padding: 0.75rem;
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .dot.red { background: #ff5f56; }
+    .dot.yellow { background: #ffbd2e; }
+    .dot.green { background: #27ca40; }
+
+    .terminal-body {
+      padding: 1.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .terminal-line {
+      margin-bottom: 0.5rem;
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .prompt {
+      color: var(--accent-coral);
+      font-weight: 600;
+    }
+
+    .command {
+      color: var(--text-primary);
+    }
+
+    .response {
+      color: var(--text-secondary);
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 16px;
+      background: var(--accent-coral);
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+
+    /* ── CALLOUT BOXES ────────────────────────────────── */
+    .callout {
+      background: var(--bg-secondary);
+      border: 1px solid rgba(255, 107, 91, 0.2);
+      border-left: 4px solid var(--accent-coral);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+    }
+
+    .callout strong {
+      color: var(--accent-coral);
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .callout p {
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    /* ── NAV BUTTONS ───────────────────────────────────── */
+    .nav-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 1rem 2rem;
+      background: var(--gradient-primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-full);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: var(--shadow-glow-coral);
+    }
+
+    .nav-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 60px rgba(255, 107, 91, 0.5);
+    }
+
+    /* ── FLOW ANIMATION ─────────────────────────────────── */
+    .flow-animation {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      padding: 2rem 0;
+    }
+
+    .flow-step {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 1.5rem;
+      background: var(--bg-secondary);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-lg);
+      transition: all 0.3s;
+    }
+
+    .flow-step:hover {
+      background: var(--bg-tertiary);
+      transform: translateX(8px);
+    }
+
+    .step-icon {
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      background: var(--bg-tertiary);
+      border-radius: var(--radius-md);
+      flex-shrink: 0;
+    }
+
+    .step-content h3 {
+      font-size: 1.1rem;
+      margin-bottom: 0.25rem;
+      color: var(--text-primary);
+    }
+
+    .step-content p {
+      font-size: 0.95rem;
+      margin: 0;
+      color: var(--text-secondary);
+    }
+
+    .flow-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      color: var(--text-muted);
+    }
+
+    @media (min-width: 768px) {
+      .flow-animation {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+      }
+
+      .flow-step {
+        flex-direction: column;
+        min-width: 200px;
+        text-align: center;
+      }
+
+      .flow-arrow {
+        display: flex;
+      }
+    }
+
+    /* ── TRANSLATION BLOCKS ─────────────────────────────── */
+    .translation-block {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    @media (min-width: 768px) {
+      .translation-block {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .translation-code,
+    .translation-english {
+      background: var(--bg-secondary);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+    }
+
+    .translation-english {
+      border-color: rgba(79, 209, 197, 0.2);
+    }
+
+    .translation-label {
+      display: block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    .translation-lines .tl {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+    }
+
+    .translation-lines .tl:last-child {
+      border-bottom: none;
+    }
+
+    /* ── PATTERN CARDS ──────────────────────────────────── */
+    .pattern-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .pattern-card {
+      background: var(--bg-secondary);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      transition: all 0.3s;
+    }
+
+    .pattern-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(255, 107, 91, 0.2);
+      box-shadow: var(--shadow-glow-coral);
+    }
+
+    .pattern-icon {
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      background: var(--bg-tertiary);
+      border-radius: var(--radius-md);
+      margin-bottom: 1rem;
+    }
+
+    .pattern-title {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+
+    .pattern-desc {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    /* ── CHAT WINDOW ─────────────────────────────────────── */
+    .chat-window {
+      background: var(--bg-secondary);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      margin: 2rem 0;
+    }
+
+    .chat-messages {
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      min-height: 300px;
+    }
+
+    .chat-message {
+      display: none;
+      align-items: flex-end;
+      gap: 1rem;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .chat-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .chat-bubble {
+      max-width: 70%;
+      padding: 1rem 1.5rem;
+      background: var(--bg-tertiary);
+      border-radius: var(--radius-lg);
+      border-top-left-radius: 4px;
+    }
+
+    .chat-sender {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--accent-coral);
+    }
+
+    .chat-bubble p {
+      font-size: 0.95rem;
+      margin: 0;
+      color: var(--text-secondary);
+    }
+
+    .chat-controls {
+      padding: 1rem 2rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--bg-tertiary);
+    }
+
+    .chat-btn {
+      padding: 0.5rem 1.5rem;
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md);
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .chat-btn:hover {
+      background: var(--accent-coral);
+      color: white;
+      border-color: var(--accent-coral);
+    }
+
+    .chat-progress {
+      margin-left: auto;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .chat-typing {
+      display: none;
+      align-items: center;
+      gap: 1rem;
+      padding: 0 2rem 1rem;
+    }
+
+    .chat-typing-dots {
+      display: flex;
+      gap: 0.25rem;
+      background: var(--bg-tertiary);
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-md);
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      animation: typingBounce 1.4s infinite;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingBounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-6px); }
+    }
+
+    /* ── QUIZ ─────────────────────────────────────────────── */
+    .quiz-container {
+      background: var(--bg-secondary);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-xl);
+      padding: 2rem;
+    }
+
+    .quiz-question-block {
+      margin-bottom: 2rem;
+    }
+
+    .quiz-question {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .quiz-option {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--bg-tertiary);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.3s;
+      color: var(--text-primary) !important;
+    }
+
+    .quiz-option:hover {
+      background: var(--bg-elevated);
+      border-color: rgba(255, 107, 91, 0.3);
+      transform: translateX(4px);
+    }
+
+    .quiz-option.selected {
+      background: rgba(255, 107, 91, 0.15);
+      border-color: var(--accent-coral);
+      color: var(--accent-coral) !important;
+    }
+
+    .quiz-option.correct {
+      background: rgba(74, 222, 128, 0.15);
+      border-color: #4ade80;
+      color: #4ade80 !important;
+    }
+
+    .quiz-option.incorrect {
+      background: rgba(248, 113, 113, 0.15);
+      border-color: #f87171;
+      color: #f87171 !important;
+    }
+
+    .quiz-option:disabled {
+      cursor: default;
+      opacity: 0.7;
+    }
+
+    .quiz-option span:not(.quiz-option-radio) {
+      color: inherit;
+      font-weight: 500;
+    }
+
+    .quiz-option-radio {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      flex-shrink: 0;
+      background: transparent;
+    }
+
+    .quiz-option:hover .quiz-option-radio {
+      border-color: var(--accent-coral);
+    }
+
+    .quiz-option.selected .quiz-option-radio {
+      background: var(--accent-coral);
+      border-color: var(--accent-coral);
+      box-shadow: inset 0 0 0 4px var(--bg-tertiary);
+    }
+
+    .quiz-option.correct .quiz-option-radio {
+      background: #4ade80;
+      border-color: #4ade80;
+      box-shadow: inset 0 0 0 4px var(--bg-tertiary);
+    }
+
+    .quiz-option.incorrect .quiz-option-radio {
+      background: #f87171;
+      border-color: #f87171;
+      box-shadow: inset 0 0 0 4px var(--bg-tertiary);
+    }
+
+    .quiz-buttons {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .quiz-check-btn,
+    .quiz-reset-btn {
+      padding: 1rem 2rem;
+      border-radius: var(--radius-md);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.3s;
+    }
+
+    .quiz-check-btn {
+      background: var(--gradient-primary);
+      color: white;
+    }
+
+    .quiz-check-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 60px rgba(255, 107, 91, 0.5);
+    }
+
+    .quiz-reset-btn {
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+    }
+
+    /* ── UTILITIES ───────────────────────────────────────── */
+    .text-center {
+      text-align: center;
+    }
+
+    .highlight {
+      font-size: 1.1rem;
+      color: var(--text-primary);
+      border-left: 4px solid var(--accent-coral);
+      padding-left: 1.5rem;
+      margin: 1.5rem 0;
+    }
+
+    .term {
+      border-bottom: 2px dashed var(--accent-coral);
+      cursor: pointer;
+    }
+
+    /* ── RESPONSIVE ───────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .module {
+        padding: 3rem 1rem;
+      }
+
+      .module-number {
+        font-size: 4rem;
+      }
+
+      .flow-arrow {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="nav" id="nav">
+    <div class="progress-bar" id="progress-bar"></div>
+    <div class="nav-inner">
+      <span class="nav-title">Claude Code 源码解析</span>
+      <div class="nav-dots" id="nav-dots">
+        <button class="nav-dot" data-target="module-1" data-tooltip="这是什么产品？"></button>
+        <button class="nav-dot" data-target="module-2" data-tooltip="核心组件"></button>
+        <button class="nav-dot" data-target="module-3" data-tooltip="工具系统"></button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+
+    <!-- Module 1 -->
+    <section class="module" id="module-1">
+      <div class="module-content">
+        <div class="module-header">
+          <span class="module-number">01</span>
+          <h1 class="module-title">这是什么产品？</h1>
+          <p class="module-subtitle">了解 Claude Code 的核心概念和工作原理</p>
+        </div>
+
+        <!-- Screen 1 -->
+        <div class="screen">
+          <div class="content-grid">
+            <div class="text-column">
+              <h2>Claude Code 是什么？</h2>
+              <p class="highlight">
+                想象一下，你有一个超级聪明的程序员朋友，他能听懂你的话，
+                帮你写代码、查文件、修bug，甚至能解释整个项目是怎么运作的。
+              </p>
+              <p>
+                <span class="term" data-definition="AI编程助手：使用人工智能技术帮助开发者编写、理解和改进代码的工具">Claude Code</span>
+                就是这样的朋友——一个运行在终端里的 AI 编程助手。
+              </p>
+              <div class="callout">
+                <strong>💡 顿悟时刻：</strong>
+                <p>你不需要记住所有编程知识，你只需要学会如何向 AI 提问。</p>
+              </div>
+            </div>
+            <div class="visual-column">
+              <div class="terminal-demo">
+                <div class="terminal-header">
+                  <span class="dot red"></span>
+                  <span class="dot yellow"></span>
+                  <span class="dot green"></span>
+                </div>
+                <div class="terminal-body">
+                  <div class="terminal-line">
+                    <span class="prompt">$</span>
+                    <span class="command">帮我查看这个项目的结构</span>
+                  </div>
+                  <div class="terminal-line response">
+                    <span class="cursor"></span>
+                    <span>正在分析项目...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="text-center" style="margin-top: 2rem;">
+            <button class="nav-button" onclick="document.querySelector('.screen[data-screen=\'2\']').scrollIntoView({behavior: 'smooth'})">
+              开始探索 →
+            </button>
+          </div>
+        </div>
+
+        <!-- Screen 2 -->
+        <div class="screen" data-screen="2">
+          <div class="screen-heading">
+            <h2>当你输入命令时发生了什么？</h2>
+            <p class="subtitle">让我们追踪一个完整的请求流程</p>
+          </div>
+
+          <div class="flow-animation">
+            <div class="flow-step">
+              <div class="step-icon">👤</div>
+              <div class="step-content">
+                <h3>1. 你发送请求</h3>
+                <p>"帮我把所有的 console.log 改成 logger"</p>
+              </div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <div class="step-icon">🔍</div>
+              <div class="step-content">
+                <h3>2. 理解意图</h3>
+                <p>Claude 分析你的需求</p>
+              </div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <div class="step-icon">🛠️</div>
+              <div class="step-content">
+                <h3>3. 规划步骤</h3>
+                <p>搜索 → 找到 → 替换</p>
+              </div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <div class="step-icon">⚡</div>
+              <div class="step-content">
+                <h3>4. 执行工具</h3>
+                <p>Grep + Edit</p>
+              </div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <div class="step-icon">✅</div>
+              <div class="step-content">
+                <h3>5. 返回结果</h3>
+                <p>"修改了 12 个文件"</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Screen 3 -->
+        <div class="screen" data-screen="3">
+          <div class="content-grid reverse">
+            <div class="visual-column">
+              <div class="translation-block">
+                <div class="translation-code">
+                  <span class="translation-label">TypeScript 源码</span>
+                  <div class="translation-lines">
+                    <div class="tl">async function* query(prompt) {</div>
+                    <div class="tl">  const messages = [];</div>
+                    <div class="tl">  while (stopReason) {</div>
+                    <div class="tl">    yield response;</div>
+                    <div class="tl">  }</div>
+                    <div class="tl">}</div>
+                  </div>
+                </div>
+                <div class="translation-english">
+                  <span class="translation-label">中文解释</span>
+                  <div class="translation-lines">
+                    <div class="tl">定义异步生成函数</div>
+                    <div class="tl">创建消息数组</div>
+                    <div class="tl">循环直到停止</div>
+                    <div class="tl">返回结果</div>
+                    <div class="tl">结束循环</div>
+                    <div class="tl">函数结束</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="text-column">
+              <h2>核心引擎：query 函数</h2>
+              <p>这是 Claude Code 的<span class="term" data-definition="心脏：系统的核心组件">心脏</span>。</p>
+              <p>它不断地和 Claude API 对话，直到任务完成。</p>
+              <div class="callout">
+                <strong>🎯 关键：</strong>
+                <p>通过多次对话逐步完成任务，而不是一次性给出答案。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Screen 4 -->
+        <div class="screen" data-screen="4">
+          <div class="screen-heading">
+            <h2>强大的工具箱</h2>
+            <p class="subtitle">Claude Code 有 40+ 种工具可以调用</p>
+          </div>
+
+          <div class="pattern-cards">
+            <div class="pattern-card">
+              <div class="pattern-icon">📄</div>
+              <h3 class="pattern-title">文件操作</h3>
+              <p class="pattern-desc">Read、Edit、Write - 读取、编辑、创建文件</p>
+            </div>
+            <div class="pattern-card">
+              <div class="pattern-icon">🔍</div>
+              <h3 class="pattern-title">搜索查找</h3>
+              <p class="pattern-desc">Grep、Glob - 搜索文本、查找文件</p>
+            </div>
+            <div class="pattern-card">
+              <div class="pattern-icon">⚙️</div>
+              <h3 class="pattern-title">执行命令</h3>
+              <p class="pattern-desc">Bash - 运行终端命令</p>
+            </div>
+            <div class="pattern-card">
+              <div class="pattern-icon">🌐</div>
+              <h3 class="pattern-title">网络访问</h3>
+              <p class="pattern-desc">WebSearch、WebFetch - 搜索和获取网页</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Screen 5: Chat Demo -->
+        <div class="screen" data-screen="5">
+          <div class="screen-heading">
+            <h2>组件如何协作？</h2>
+            <p class="subtitle">看看内部组件是怎么对话的</p>
+          </div>
+
+          <div class="chat-window" id="chat-demo-1">
+            <div class="chat-messages">
+              <div class="chat-message" data-sender="User" style="display: none;">
+                <div class="chat-avatar" style="background: var(--accent-coral);">U</div>
+                <div class="chat-bubble">
+                  <span class="chat-sender">用户</span>
+                  <p>帮我把 README.md 中的标题改成中文</p>
+                </div>
+              </div>
+              <div class="chat-message" data-sender="Claude" style="display: none;">
+                <div class="chat-avatar" style="background: var(--accent-teal);">C</div>
+                <div class="chat-bubble">
+                  <span class="chat-sender">Claude</span>
+                  <p>好的，我需要先读取 README.md 文件</p>
+                </div>
+              </div>
+              <div class="chat-message" data-sender="ReadTool" style="display: none;">
+                <div class="chat-avatar" style="background: var(--accent-violet);">R</div>
+                <div class="chat-bubble">
+                  <span class="chat-sender">Read 工具</span>
+                  <p>已读取文件！找到标题："README"</p>
+                </div>
+              </div>
+              <div class="chat-message" data-sender="EditTool" style="display: none;">
+                <div class="chat-avatar" style="background: var(--accent-amber);">E</div>
+                <div class="chat-bubble">
+                  <span class="chat-sender">Edit 工具</span>
+                  <p>完成！已替换为"README 说明文档"</p>
+                </div>
+              </div>
+              <div class="chat-message" data-sender="Claude" style="display: none;">
+                <div class="chat-avatar" style="background: var(--accent-teal);">C</div>
+                <div class="chat-bubble">
+                  <span class="chat-sender">Claude</span>
+                  <p>✅ 已完成！标题已改成中文</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="chat-typing">
+              <div class="chat-avatar" style="background: var(--accent-coral);">U</div>
+              <div class="chat-typing-dots">
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+              </div>
+            </div>
+
+            <div class="chat-controls">
+              <button class="chat-btn" id="chat-demo-1-next">下一步</button>
+              <button class="chat-btn" id="chat-demo-1-all">播放全部</button>
+              <button class="chat-btn" id="chat-demo-1-reset">重播</button>
+              <span class="chat-progress" id="chat-demo-1-progress">0 / 5 条消息</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Screen 6: Quiz -->
+        <div class="screen" data-screen="6">
+          <div class="screen-heading">
+            <h2>检验你的理解</h2>
+            <p class="subtitle">这些问题都来自前面学过的内容</p>
+          </div>
+
+          <div class="quiz-container" id="quiz-1">
+
+            <!-- 问题 1: 关于请求流程 -->
+            <div class="quiz-question-block" data-correct="c">
+              <p class="quiz-question">1. 当你输入"帮我把所有 console.log 改成 logger"时，Claude Code 首先会做什么？</p>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                  <span class="quiz-option-radio"></span>
+                  <span>直接运行替换命令</span>
+                </button>
+                <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                  <span class="quiz-option-radio"></span>
+                  <span>搜索所有文件</span>
+                </button>
+                <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                  <span class="quiz-option-radio"></span>
+                  <span>理解你的意图，规划行动步骤</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 问题 2: 关于工具系统 -->
+            <div class="quiz-question-block" data-correct="b">
+              <p class="quiz-question">2. Claude Code 中有多少种内置工具可以调用？</p>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                  <span class="quiz-option-radio"></span>
+                  <span>10多种</span>
+                </button>
+                <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                  <span class="quiz-option-radio"></span>
+                  <span>40多种</span>
+                </button>
+                <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                  <span class="quiz-option-radio"></span>
+                  <span>100多种</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 问题 3: 关于工作方式 -->
+            <div class="quiz-question-block" data-correct="a">
+              <p class="quiz-question">3. Claude Code 完成任务的方式是什么？</p>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                  <span class="quiz-option-radio"></span>
+                  <span>通过多次对话逐步完成任务</span>
+                </button>
+                <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                  <span class="quiz-option-radio"></span>
+                  <span>一次性给出所有答案</span>
+                </button>
+                <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                  <span class="quiz-option-radio"></span>
+                  <span>只调用一次 AI API</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 问题 4: 关于工具类型 -->
+            <div class="quiz-question-block" data-correct="c">
+              <p class="quiz-question">4. 以下哪项不是 Claude Code 的工具类型？</p>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                  <span class="quiz-option-radio"></span>
+                  <span>文件操作 (Read, Edit, Write)</span>
+                </button>
+                <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                  <span class="quiz-option-radio"></span>
+                  <span>搜索查找 (Grep, Glob)</span>
+                </button>
+                <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                  <span class="quiz-option-radio"></span>
+                  <span>语音识别</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="quiz-buttons">
+              <button class="quiz-check-btn" onclick="checkQuizSimple('quiz-1')">检查答案</button>
+              <button class="quiz-reset-btn" onclick="resetQuizSimple('quiz-1')">重置</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // 聊天功能
+    (function() {
+      const messages = document.querySelectorAll('#chat-demo-1 .chat-message');
+      const typingIndicator = document.querySelector('#chat-demo-1 .chat-typing');
+      const nextBtn = document.getElementById('chat-demo-1-next');
+      const allBtn = document.getElementById('chat-demo-1-all');
+      const resetBtn = document.getElementById('chat-demo-1-reset');
+      const progressDisplay = document.getElementById('chat-demo-1-progress');
+
+      let currentIndex = 0;
+      let animationInterval = null;
+
+      function updateProgress() {
+        progressDisplay.textContent = `${currentIndex} / ${messages.length} 条消息`;
+      }
+
+      function showMessage(index) {
+        if (index >= messages.length) return;
+
+        if (typingIndicator) {
+          typingIndicator.style.display = 'flex';
+        }
+
+        setTimeout(() => {
+          if (typingIndicator) {
+            typingIndicator.style.display = 'none';
+          }
+
+          const message = messages[index];
+          message.style.display = 'flex';
+          message.style.animation = 'slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+
+          currentIndex++;
+          updateProgress();
+        }, 600);
+      }
+
+      nextBtn.addEventListener('click', () => showMessage(currentIndex));
+
+      allBtn.addEventListener('click', () => {
+        if (animationInterval) return;
+
+        // Reset first
+        messages.forEach(msg => { msg.style.display = 'none'; });
+        currentIndex = 0;
+        updateProgress();
+
+        setTimeout(() => {
+          animationInterval = setInterval(() => {
+            if (currentIndex >= messages.length) {
+              clearInterval(animationInterval);
+              animationInterval = null;
+              return;
+            }
+            showMessage(currentIndex);
+          }, 1500);
+        }, 500);
+      });
+
+      resetBtn.addEventListener('click', () => {
+        if (animationInterval) {
+          clearInterval(animationInterval);
+          animationInterval = null;
+        }
+
+        currentIndex = 0;
+        updateProgress();
+
+        messages.forEach(msg => {
+          msg.style.display = 'none';
+          msg.style.animation = '';
+        });
+
+        if (typingIndicator) {
+          typingIndicator.style.display = 'none';
+        }
+      });
+
+      updateProgress();
+    })();
+
+    // 测验功能
+    function selectOption(btn) {
+      const block = btn.closest('.quiz-question-block');
+      block.querySelectorAll('.quiz-option').forEach(o => {
+        o.classList.remove('selected');
+      });
+      btn.classList.add('selected');
+    }
+
+    function checkQuizSimple(containerId) {
+      const container = document.getElementById(containerId);
+      const blocks = container.querySelectorAll('.quiz-question-block');
+      let allCorrect = true;
+      let correctCount = 0;
+
+      blocks.forEach(block => {
+        const selected = block.querySelector('.quiz-option.selected');
+        const correct = block.dataset.correct;
+        const questionText = block.querySelector('.quiz-question').textContent;
+
+        if (!selected) {
+          alert('请先选择答案：' + questionText);
+          return;
+        }
+
+        block.querySelectorAll('.quiz-option').forEach(o => {
+          o.disabled = true;
+        });
+
+        if (selected.dataset.value === correct) {
+          selected.classList.add('correct');
+          correctCount++;
+        } else {
+          selected.classList.add('incorrect');
+          const correctBtn = block.querySelector(`.quiz-option[data-value="${correct}"]`);
+          if (correctBtn) correctBtn.classList.add('correct');
+          allCorrect = false;
+        }
+      });
+
+      // 显示结果
+      if (correctCount === blocks.length) {
+        alert('🎉 太棒了！全部正确！你掌握得很好！\n\n' + correctCount + '/' + blocks.length + ' 题正确');
+      } else {
+        alert('✨ 完成了！\n\n正确：' + correctCount + ' 题\n总计：' + blocks.length + ' 题\n\n红色标记的是正确答案，可以看看哦～');
+      }
+    }
+
+    function resetQuizSimple(containerId) {
+      const container = document.getElementById(containerId);
+      container.querySelectorAll('.quiz-option').forEach(o => {
+        o.classList.remove('selected', 'correct', 'incorrect');
+        o.disabled = false;
+      });
+    }
+
+    // 进度条
+    window.addEventListener('scroll', () => {
+      const scrollTop = window.scrollY;
+      const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+      document.getElementById('progress-bar').style.width = progress + '%';
+    });
+  </script>
+
+</body>
+</html>

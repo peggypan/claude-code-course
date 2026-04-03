@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>聊天测试</title>
+  <link rel="stylesheet" href="styles-redesign.css">
+  <style>
+    :root {
+      --color-accent: #ff6b5b;
+      --color-accent-hover: #ff8a71;
+      --color-accent-light: rgba(255, 107, 91, 0.15);
+      --color-accent-muted: #ff8a71;
+    }
+    body {
+      padding: 20px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+    }
+    .test-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h2 {
+      margin-bottom: 20px;
+      color: var(--text-primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h2>🧪 聊天动画测试</h2>
+
+    <div class="chat-window" id="chat-test">
+      <div class="chat-messages">
+        <div class="chat-message" data-sender="User" style="display: none;">
+          <div class="chat-avatar" style="background: var(--accent-coral);">U</div>
+          <div class="chat-bubble">
+            <span class="chat-sender">用户</span>
+            <p>帮我把 README.md 中的标题改成中文</p>
+          </div>
+        </div>
+        <div class="chat-message" data-sender="Claude" style="display: none;">
+          <div class="chat-avatar" style="background: var(--accent-teal);">C</div>
+          <div class="chat-bubble">
+            <span class="chat-sender">Claude</span>
+            <p>好的，我需要先读取 README.md 文件，找到标题位置，然后修改它。</p>
+          </div>
+        </div>
+        <div class="chat-message" data-sender="ReadTool" style="display: none;">
+          <div class="chat-avatar" style="background: var(--accent-violet);">R</div>
+          <div class="chat-bubble">
+            <span class="chat-sender">Read 工具</span>
+            <p>已读取文件！找到第 3 行的标题："README"</p>
+          </div>
+        </div>
+        <div class="chat-message" data-sender="EditTool" style="display: none;">
+          <div class="chat-avatar" style="background: var(--accent-amber);">E</div>
+          <div class="chat-bubble">
+            <span class="chat-sender">Edit 工具</span>
+            <p>完成！已将 "README" 替换为 "README 说明文档"</p>
+          </div>
+        </div>
+        <div class="chat-message" data-sender="Claude" style="display: none;">
+          <div class="chat-avatar" style="background: var(--accent-teal);">C</div>
+          <div class="chat-bubble">
+            <span class="chat-sender">Claude</span>
+            <p>✅ 已完成！README.md 的标题已经改成中文了。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Typing indicator -->
+      <div class="chat-typing" style="display: none;">
+        <div class="chat-avatar" style="background: var(--accent-coral);">U</div>
+        <div class="chat-typing-dots">
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+        </div>
+      </div>
+
+      <div class="chat-controls">
+        <button class="chat-btn" id="nextBtn">下一步</button>
+        <button class="chat-btn" id="allBtn">播放全部</button>
+        <button class="chat-btn" id="resetBtn">重播</button>
+        <span class="chat-progress" id="progressDisplay">0 / 5 条消息</span>
+      </div>
+    </div>
+
+    <div style="margin-top: 40px; padding: 20px; background: var(--bg-secondary); border-radius: 10px;">
+      <h3>📋 测试说明</h3>
+      <ul style="color: var(--text-secondary); line-height: 1.8;">
+        <li>✅ 点击"下一步" - 逐条显示消息</li>
+        <li>✅ 点击"播放全部" - 自动播放所有消息</li>
+        <li>✅ 点击"重播" - 重置并重新开始</li>
+        <li>✅ 每条消息之间有 1.5 秒间隔</li>
+        <li>✅ 消息出现时有滑入动画</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      'use strict';
+
+      const messages = document.querySelectorAll('#chat-test .chat-message');
+      const typingIndicator = document.querySelector('#chat-test .chat-typing');
+      const nextBtn = document.getElementById('nextBtn');
+      const allBtn = document.getElementById('allBtn');
+      const resetBtn = document.getElementById('resetBtn');
+      const progressDisplay = document.getElementById('progressDisplay');
+
+      let currentIndex = 0;
+      let animationInterval = null;
+
+      function updateProgress() {
+        if (progressDisplay) {
+          progressDisplay.textContent = `${currentIndex} / ${messages.length} 条消息`;
+        }
+      }
+
+      function showMessage(index) {
+        if (index >= messages.length) {
+          console.log('所有消息已显示完毕');
+          return;
+        }
+
+        console.log(`显示消息 ${index + 1}/${messages.length}`);
+
+        // Show typing indicator first
+        if (typingIndicator) {
+          typingIndicator.style.display = 'flex';
+        }
+
+        setTimeout(() => {
+          // Hide typing indicator
+          if (typingIndicator) {
+            typingIndicator.style.display = 'none';
+          }
+
+          // Show the message
+          const message = messages[index];
+          message.style.display = 'flex';
+
+          currentIndex++;
+          updateProgress();
+
+          console.log(`消息 ${index} 已显示，当前进度: ${currentIndex}/${messages.length}`);
+        }, 800);
+      }
+
+      function showNext() {
+        console.log('点击下一步');
+        showMessage(currentIndex);
+      }
+
+      function showAll() {
+        console.log('播放全部');
+        if (animationInterval) return;
+
+        // 先重置
+        reset();
+
+        // 等待一点时间后开始播放
+        setTimeout(() => {
+          animationInterval = setInterval(() => {
+            if (currentIndex >= messages.length) {
+              clearInterval(animationInterval);
+              animationInterval = null;
+              console.log('自动播放完成');
+              return;
+            }
+            showMessage(currentIndex);
+          }, 1500);
+        }, 500);
+      }
+
+      function reset() {
+        console.log('重置聊天');
+
+        // Clear any running animation
+        if (animationInterval) {
+          clearInterval(animationInterval);
+          animationInterval = null;
+        }
+
+        // Reset index
+        currentIndex = 0;
+        updateProgress();
+
+        // Hide all messages
+        messages.forEach(msg => {
+          msg.style.display = 'none';
+          msg.style.animation = '';
+        });
+
+        // Hide typing indicator
+        if (typingIndicator) {
+          typingIndicator.style.display = 'none';
+        }
+      }
+
+      // Bind button events
+      if (nextBtn) {
+        nextBtn.addEventListener('click', showNext);
+      }
+
+      if (allBtn) {
+        allBtn.addEventListener('click', showAll);
+      }
+
+      if (resetBtn) {
+        resetBtn.addEventListener('click', reset);
+      }
+
+      // Initial setup
+      console.log('聊天测试初始化完成');
+      console.log(`总消息数: ${messages.length}`);
+      updateProgress();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,711 @@
+<section class="module" id="module-2">
+  <div class="module-header">
+    <h2>模块 2：核心组件介绍</h2>
+    <p class="subtitle">认识 Claude Code 的三大支柱：查询引擎、工具系统与状态管理</p>
+  </div>
+
+  <!-- 架构概览 -->
+  <div class="content-block">
+    <h3>🏗️ 架构全景图</h3>
+    <div class="architecture-diagram">
+      <div class="arch-component query-engine">
+        <div class="component-icon">⚙️</div>
+        <h4>查询引擎 (QueryEngine)</h4>
+        <p>协调整个对话流程</p>
+      </div>
+
+      <div class="arch-connector">
+        <span class="arrow">→</span>
+        <span class="label">调用</span>
+        <span class="arrow">←</span>
+      </div>
+
+      <div class="arch-component tools">
+        <div class="component-icon">🔧</div>
+        <h4>工具系统 (Tools)</h4>
+        <p>执行具体操作</p>
+      </div>
+
+      <div class="arch-connector">
+        <span class="arrow">↔</span>
+        <span class="label">状态同步</span>
+        <span class="arrow">↔</span>
+      </div>
+
+      <div class="arch-component state">
+        <div class="component-icon">💾</div>
+        <h4>状态管理 (AppState)</h4>
+        <p>维护应用状态</p>
+      </div>
+    </div>
+
+    <div class="callout info">
+      <strong>💡 设计理念</strong>
+      <p>Claude Code 采用分层架构：查询引擎负责编排，工具系统负责执行，状态管理负责持久化。三者协同工作，形成完整的 AI 代码助手系统。</p>
+    </div>
+  </div>
+
+  <!-- 查询引擎详解 -->
+  <div class="content-block">
+    <h3>⚙️ 查询引擎 (QueryEngine)</h3>
+    <p>查询引擎是 Claude Code 的核心协调器，负责管理整个对话生命周期。</p>
+
+    <div class="code-tabs">
+      <div class="tab-header">
+        <button class="tab-button active" data-tab="qe-class">QueryEngine 类定义</button>
+        <button class="tab-button" data-tab="qe-lifecycle">生命周期方法</button>
+        <button class="tab-button" data-tab="qe-usage">使用示例</button>
+      </div>
+
+      <div class="tab-content active" id="qe-class">
+        <div class="code-block">
+          <div class="code-header">
+            <span>src/QueryEngine.ts</span>
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+          </div>
+          <pre><code class="language-typescript">export class QueryEngine {
+  private config: QueryEngineConfig
+  private mutableMessages: Message[]
+  private abortController: AbortController
+  private permissionDenials: SDKPermissionDenial[]
+  private totalUsage: NonNullableUsage
+
+  constructor(config: QueryEngineConfig) {
+    this.config = config
+    this.mutableMessages = config.initialMessages ?? []
+    this.abortController = config.abortController ?? createAbortController()
+    this.permissionDenials = []
+    this.totalUsage = EMPTY_USAGE
+  }
+
+  async *submitMessage(
+    prompt: string | ContentBlockParam[],
+    options?: { uuid?: string; isMeta?: boolean },
+  ): AsyncGenerator<SDKMessage, void, unknown> {
+    // 实现消息提交逻辑
+  }
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="tab-content" id="qe-lifecycle">
+        <div class="code-block">
+          <div class="code-header">
+            <span>查询生命周期</span>
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+          </div>
+          <pre><code class="language-typescript">// 1. 初始化阶段
+- 加载系统提示词
+- 准备工具列表
+- 设置权限上下文
+
+// 2. 处理输入阶段
+- 解析用户消息
+- 处理斜杠命令
+- 附加文件内容
+
+// 3. API 调用阶段
+- 调用 Claude API
+- 流式接收响应
+- 处理工具调用请求
+
+// 4. 工具执行阶段
+- 验证工具权限
+- 执行工具操作
+- 收集工具结果
+
+// 5. 结果返回阶段
+- 格式化响应消息
+- 更新使用统计
+- 返回结果给用户</code></pre>
+        </div>
+      </div>
+
+      <div class="tab-content" id="qe-usage">
+        <div class="code-block">
+          <div class="code-header">
+            <span>使用示例</span>
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+          </div>
+          <pre><code class="language-typescript">// 创建查询引擎实例
+const engine = new QueryEngine({
+  cwd: process.cwd(),
+  tools: availableTools,
+  commands: allCommands,
+  mcpClients: mcpConnections,
+  agents: agentDefinitions,
+  canUseTool: checkToolPermissions,
+  getAppState: () => store.getState(),
+  setAppState: (fn) => store.setState(fn()),
+  readFileCache: new FileStateCache(),
+})
+
+// 提交消息并获取响应
+for await (const message of engine.submitMessage(userInput)) {
+  if (message.type === 'assistant') {
+    console.log('Assistant:', message.message)
+  } else if (message.type === 'result') {
+    console.log('Result:', message.result)
+  }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout warning">
+      <strong>⚠️ 重要提示</strong>
+      <p>每个 QueryEngine 实例对应一个对话会话。多次调用 <code>submitMessage()</code> 会在同一会话中继续对话，状态（消息历史、文件缓存、使用统计等）会在多次调用之间持久化。</p>
+    </div>
+  </div>
+
+  <!-- 工具系统详解 -->
+  <div class="content-block">
+    <h3>🔧 工具系统 (Tools)</h3>
+    <p>工具系统定义了 Claude 可以执行的所有操作，从文件读写到 Bash 命令执行。</p>
+
+    <div class="interactive-demo">
+      <h4>🎮 交互式工具探索</h4>
+      <p>点击不同类别查看工具类型：</p>
+
+      <div class="tool-categories">
+        <button class="tool-category-btn active" data-category="file">📁 文件操作</button>
+        <button class="tool-category-btn" data-category="search">🔍 搜索工具</button>
+        <button class="tool-category-btn" data-category="bash">⚡ Bash 工具</button>
+        <button class="tool-category-btn" data-category="mcp">🔌 MCP 工具</button>
+      </div>
+
+      <div class="tool-examples">
+        <div class="tool-example active" data-category="file">
+          <h5>文件操作工具</h5>
+          <div class="code-block">
+            <pre><code class="language-typescript">// Read 工具定义
+const ReadTool: Tool = {
+  name: 'Read',
+  description: '读取文件内容',
+  inputSchema: z.object({
+    file_path: z.string(),
+    offset: z.number().optional(),
+    limit: z.number().optional(),
+  }),
+  call: async (input, context) => {
+    const content = await fs.readFile(input.file_path, 'utf-8')
+    return { data: content }
+  },
+  isReadOnly: () => true,  // 只读操作
+  isEnabled: () => true,
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="tool-example" data-category="search">
+          <h5>搜索工具</h5>
+          <div class="code-block">
+            <pre><code class="language-typescript">// Grep 工具定义
+const GrepTool: Tool = {
+  name: 'Grep',
+  description: '在文件中搜索模式',
+  inputSchema: z.object({
+    pattern: z.string(),
+    path: z.string().optional(),
+    glob: z.string().optional(),
+  }),
+  call: async (input, context) => {
+    const results = await searchFiles(input.pattern, input.path)
+    return { data: results }
+  },
+  isReadOnly: () => true,
+  isSearchOrReadCommand: () => ({ isSearch: true, isRead: false }),
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="tool-example" data-category="bash">
+          <h5>Bash 工具</h5>
+          <div class="code-block">
+            <pre><code class="language-typescript">// Bash 工具定义
+const BashTool: Tool = {
+  name: 'Bash',
+  description: '执行 Shell 命令',
+  inputSchema: z.object({
+    command: z.string(),
+  }),
+  call: async (input, context) => {
+    const result = await execCommand(input.command)
+    return { data: result.stdout }
+  },
+  isReadOnly: (input) => isReadOnlyCommand(input.command),
+  isDestructive: (input) => isDestructiveCommand(input.command),
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="tool-example" data-category="mcp">
+          <h5>MCP 工具</h5>
+          <div class="code-block">
+            <pre><code class="language-typescript">// MCP 工具示例（来自外部服务器）
+const MCPTool: Tool = {
+  name: 'mcp__server__tool_name',
+  description: 'MCP 服务器提供的工具',
+  mcpInfo: {
+    serverName: 'server',
+    toolName: 'tool_name'
+  },
+  isMcp: true,
+  call: async (input, context) => {
+    // 通过 MCP 协议调用远程工具
+    const result = await callMCPTool(
+      context.mcpClients,
+      'server',
+      'tool_name',
+      input
+    )
+    return { data: result }
+  },
+}</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h4>📋 工具接口核心方法</h4>
+    <div class="method-table">
+      <table>
+        <thead>
+          <tr>
+            <th>方法</th>
+            <th>职责</th>
+            <th>返回值</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>call()</code></td>
+            <td>执行工具逻辑</td>
+            <td><code>Promise&lt;ToolResult&gt;</code></td>
+          </tr>
+          <tr>
+            <td><code>description()</code></td>
+            <td>生成工具描述</td>
+            <td><code>Promise&lt;string&gt;</code></td>
+          </tr>
+          <tr>
+            <td><code>checkPermissions()</code></td>
+            <td>验证权限</td>
+            <td><code>Promise&lt;PermissionResult&gt;</code></td>
+          </tr>
+          <tr>
+            <td><code>isReadOnly()</code></td>
+            <td>判断是否只读</td>
+            <td><code>boolean</code></td>
+          </tr>
+          <tr>
+            <td><code>isDestructive()</code></td>
+            <td>判断是否破坏性</td>
+            <td><code>boolean</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 状态管理详解 -->
+  <div class="content-block">
+    <h3>💾 状态管理 (AppState)</h3>
+    <p>AppState 使用 React Context 和自定义 Store 管理全局应用状态。</p>
+
+    <div class="code-tabs">
+      <div class="tab-header">
+        <button class="tab-button active" data-tab="state-interface">状态接口</button>
+        <button class="tab-button" data-tab="state-hooks">使用 Hooks</button>
+        <button class="tab-button" data-tab="state-pattern">状态更新模式</button>
+      </div>
+
+      <div class="tab-content active" id="state-interface">
+        <div class="code-block">
+          <div class="code-header">
+            <span>AppState 接口定义</span>
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+          </div>
+          <pre><code class="language-typescript">export type AppState = {
+  // 对话状态
+  messages: Message[]
+  promptSuggestion: CompletionBoundary | null
+
+  // 工具权限
+  toolPermissionContext: ToolPermissionContext
+
+  // 模型配置
+  mainLoopModel: string
+  customSystemPrompt?: string
+  appendSystemPrompt?: string
+
+  // UI 状态
+  verbose: boolean
+  fastMode: FastModeState
+  theme: ThemeName
+
+  // 文件历史
+  fileHistory: FileHistoryState
+  attribution: AttributionState
+
+  // 推测状态（预测用户输入）
+  speculation: SpeculationState
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="tab-content" id="state-hooks">
+        <div class="code-block">
+          <div class="code-header">
+            <span>状态访问 Hooks</span>
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+          </div>
+          <pre><code class="language-typescript">// 读取状态
+function MyComponent() {
+  const messages = useAppState(s => s.messages)
+  const verbose = useAppState(s => s.verbose)
+  const model = useAppState(s => s.mainLoopModel)
+
+  return <div>{/* 使用状态 */}</div>
+}
+
+// 更新状态
+function AnotherComponent() {
+  const setAppState = useSetAppState()
+
+  const handleClick = () => {
+    setAppState(prev => ({
+      ...prev,
+      verbose: !prev.verbose,
+      // 只更新需要的字段
+    }))
+  }
+
+  return <button onClick={handleClick}>切换详细模式</button>
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="tab-content" id="state-pattern">
+        <div class="code-block">
+          <div class="code-header">
+            <span>状态更新最佳实践</span>
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+          </div>
+          <pre><code class="language-typescript">// ✅ 推荐：使用函数式更新
+setAppState(prev => ({
+  ...prev,
+  messages: [...prev.messages, newMessage],
+}))
+
+// ✅ 推荐：只更新需要的字段
+setAppState(prev => {
+  const updated = { ...prev, verbose: true }
+  return updated
+})
+
+// ❌ 避免：直接修改状态
+setAppState(prev => {
+  prev.messages.push(newMessage) // 不要这样做！
+  return prev
+})
+
+// ✅ 推荐：使用不可变更新
+setAppState(prev => ({
+  ...prev,
+  messages: [...prev.messages, newMessage],
+}))</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout success">
+      <strong>✅ 性能优化</strong>
+      <p><code>useAppState()</code> 使用选择器模式，只有当选择的值真正改变时才会重新渲染。对于多个独立字段，多次调用 hook 比返回新对象更高效。</p>
+    </div>
+  </div>
+
+  <!-- 组件协作 -->
+  <div class="content-block">
+    <h3>🤝 组件协作流程</h3>
+    <p>让我们看看三大组件如何协同工作来处理一个用户请求：</p>
+
+    <div class="flow-diagram">
+      <div class="flow-step">
+        <div class="step-number">1</div>
+        <div class="step-content">
+          <h4>用户输入</h4>
+          <p>用户发送消息："帮我找到所有 TypeScript 文件中的 TODO 注释"</p>
+        </div>
+      </div>
+
+      <div class="flow-arrow">↓</div>
+
+      <div class="flow-step">
+        <div class="step-number">2</div>
+        <div class="step-content">
+          <h4>QueryEngine 接收</h4>
+          <p><code>submitMessage()</code> 被调用，创建新的对话轮次</p>
+        </div>
+      </div>
+
+      <div class="flow-arrow">↓</div>
+
+      <div class="flow-step">
+        <div class="step-number">3</div>
+        <div class="step-content">
+          <h4>调用 Claude API</h4>
+          <p>将消息历史和系统提示词发送给 API</p>
+        </div>
+      </div>
+
+      <div class="flow-arrow">↓</div>
+
+      <div class="flow-step">
+        <div class="step-number">4</div>
+        <div class="step-content">
+          <h4>API 返回工具调用</h4>
+          <p>返回：<code>Grep(pattern="TODO", glob="*.ts")</code></p>
+        </div>
+      </div>
+
+      <div class="flow-arrow">↓</div>
+
+      <div class="flow-step">
+        <div class="step-number">5</div>
+        <div class="step-content">
+          <h4>权限检查</h4>
+          <p><code>canUseTool()</code> 验证是否允许执行 Grep 工具</p>
+        </div>
+      </div>
+
+      <div class="flow-arrow">↓</div>
+
+      <div class="flow-step">
+        <div class="step-number">6</div>
+        <div class="step-content">
+          <h4>执行工具</h4>
+          <p><code>Grep.call()</code> 执行搜索，返回结果</p>
+        </div>
+      </div>
+
+      <div class="flow-arrow">↓</div>
+
+      <div class="flow-step">
+        <div class="step-number">7</div>
+        <div class="step-content">
+          <h4>更新状态</h4>
+          <p>通过 <code>setAppState()</code> 添加新消息到历史</p>
+        </div>
+      </div>
+
+      <div class="flow-arrow">↓</div>
+
+      <div class="flow-step">
+        <div class="step-number">8</div>
+        <div class="step-content">
+          <h4>返回结果</h4>
+          <p>将搜索结果返回给用户，完成对话轮次</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 词汇表 -->
+  <div class="content-block">
+    <h3>📖 核心词汇表</h3>
+    <div class="vocabulary-grid">
+      <div class="vocabulary-item">
+        <div class="vocab-term">Tool (工具)</div>
+        <div class="vocab-definition">Claude 可以执行的操作单元，如 Read、Bash、Grep 等</div>
+      </div>
+
+      <div class="vocabulary-item">
+        <div class="vocab-term">QueryEngine (查询引擎)</div>
+        <div class="vocab-definition">管理对话生命周期的核心协调器</div>
+      </div>
+
+      <div class="vocabulary-item">
+        <div class="vocab-term">AppState (应用状态)</div>
+        <div class="vocab-definition">存储全局应用状态的不可变数据结构</div>
+      </div>
+
+      <div class="vocabulary-item">
+        <div class="vocab-term">Message (消息)</div>
+        <div class="vocab-definition">对话中的单个消息单元，可以是用户、助手或系统消息</div>
+      </div>
+
+      <div class="vocabulary-item">
+        <div class="vocab-term">PermissionMode (权限模式)</div>
+        <div class="vocab-definition">控制工具权限检查的策略（default、auto、alwaysAllow）</div>
+      </div>
+
+      <div class="vocabulary-item">
+        <div class="vocab-term">AsyncGenerator</div>
+        <div class="vocab-definition">用于流式返回多个结果的异步迭代器</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 测验 -->
+  <div class="content-block">
+    <h3>📝 知识检测</h3>
+    <div class="quiz">
+      <div class="quiz-question" data-question="1">
+        <p><strong>问题 1：</strong>QueryEngine 的主要职责是什么？</p>
+        <div class="quiz-options">
+          <button class="quiz-option" data-correct="false">A. 执行文件操作</button>
+          <button class="quiz-option" data-correct="true">B. 管理对话生命周期和协调组件</button>
+          <button class="quiz-option" data-correct="false">C. 存储用户设置</button>
+          <button class="quiz-option" data-correct="false">D. 渲染 UI 组件</button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question" data-question="2">
+        <p><strong>问题 2：</strong>Tool 接口中哪个方法是必须实现的？</p>
+        <div class="quiz-options">
+          <button class="quiz-option" data-correct="true">A. call() 方法</button>
+          <button class="quiz-option" data-correct="false">B. renderToolUseMessage() 方法</button>
+          <button class="quiz-option" data-correct="false">C. isDestructive() 方法</button>
+          <button class="quiz-option" data-correct="false">D. 以上都是</button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question" data-question="3">
+        <p><strong>问题 3：</strong>以下哪种方式更新 AppState 是正确的？</p>
+        <div class="code-block">
+          <pre><code class="language-typescript">// A
+setAppState(prev => {
+  prev.messages.push(newMessage)
+  return prev
+})
+
+// B
+setAppState(prev => ({
+  ...prev,
+  messages: [...prev.messages, newMessage],
+}))</code></pre>
+        </div>
+        <div class="quiz-options">
+          <button class="quiz-option" data-correct="false">A. 方式 A</button>
+          <button class="quiz-option" data-correct="true">B. 方式 B</button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question" data-question="4">
+        <p><strong>问题 4：</strong>QueryEngine 每次调用 submitMessage() 会如何处理状态？</p>
+        <div class="quiz-options">
+          <button class="quiz-option" data-correct="false">A. 创建全新的状态</button>
+          <button class="quiz-option" data-correct="true">B. 在现有状态基础上继续对话</button>
+          <button class="quiz-option" data-correct="false">C. 重置所有历史消息</button>
+          <button class="quiz-option" data-correct="false">D. 清空文件缓存</button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 实战练习 -->
+  <div class="content-block">
+    <h3>💻 实战练习</h3>
+    <div class="practice-exercise">
+      <div class="exercise-header">
+        <h4>练习：创建自定义工具</h4>
+        <span class="difficulty">中等</span>
+      </div>
+
+      <p>基于你学到的 Tool 接口知识，创建一个简单的自定义工具。这个工具应该能够统计指定目录下的文件数量。</p>
+
+      <div class="hint-box">
+        <button class="hint-toggle">💡 查看提示</button>
+        <div class="hint-content">
+          <ol>
+            <li>定义工具的 name 和 description</li>
+            <li>使用 z.object() 定义 inputSchema</li>
+            <li>实现 call() 方法，使用 fs.readdir() 读取目录</li>
+            <li>实现 isReadOnly() 返回 true</li>
+            <li>使用 buildTool() 创建最终工具</li>
+          </ol>
+        </div>
+      </div>
+
+      <details class="solution">
+        <summary>查看参考答案</summary>
+        <div class="code-block">
+          <div class="code-header">
+            <span>CountFilesTool.ts</span>
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+          </div>
+          <pre><code class="language-typescript">import { buildTool } from './Tool.js'
+import { z } from 'zod'
+import { readdir } from 'fs/promises'
+import { join } from 'path'
+
+export const CountFilesTool = buildTool({
+  name: 'CountFiles',
+  description: '统计指定目录下的文件数量',
+  inputSchema: z.object({
+    directory: z.string().describe('要统计的目录路径'),
+    pattern: z.string().optional().describe('可选的文件匹配模式'),
+  }),
+
+  async call(input, context) {
+    try {
+      const fullPath = join(context.options.cwd, input.directory)
+      const files = await readdir(fullPath)
+
+      let filteredFiles = files
+      if (input.pattern) {
+        const regex = new RegExp(input.pattern)
+        filteredFiles = files.filter(f => regex.test(f))
+      }
+
+      return {
+        data: {
+          total: filteredFiles.length,
+          directory: input.directory,
+          files: filteredFiles,
+        },
+      }
+    } catch (error) {
+      return {
+        data: {
+          error: error.message,
+          total: 0,
+        },
+      }
+    }
+  },
+
+  isReadOnly: () => true,
+  isEnabled: () => true,
+})</code></pre>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <!-- 总结 -->
+  <div class="content-block">
+    <h3>🎯 模块总结</h3>
+    <div class="summary-box">
+      <ul>
+        <li><strong>QueryEngine</strong> 是对话的核心协调器，管理整个查询生命周期</li>
+        <li><strong>Tools</strong> 定义了 Claude 可以执行的所有操作，通过统一接口实现</li>
+        <li><strong>AppState</strong> 使用不可变数据结构和 React Context 管理全局状态</li>
+        <li>三者通过清晰的接口协作：QueryEngine 调用 Tools，Tools 更新 AppState</li>
+        <li>理解组件协作流程对于调试和扩展功能至关重要</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 下一步 -->
+  <div class="next-steps">
+    <h3>➡️ 下一步</h3>
+    <p>完成本模块后，你已经了解了 Claude Code 的核心组件。在模块 3 中，我们将学习消息处理流程，了解用户输入如何被转换成 API 请求。</p>
+    <a href="#module-3" class="module-link">前往模块 3：消息处理流程 →</a>
+  </div>
+</section>
