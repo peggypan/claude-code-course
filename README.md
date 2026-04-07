@@ -66,12 +66,44 @@
 
 ---
 
+## 📖 最佳实践指南
+
+**文件**: [`best-practices.html`](./best-practices.html)
+
+**适合人群**:
+- ✅ 所有 Claude Code 用户
+- 📈 想提高工作效率的开发者
+- 🔧 想优化配置的高级用户
+- 📚 需要团队规范的管理者
+
+**内容概览**:
+- **最佳应用场景** - 什么适合用 Claude Code，什么不适合
+- **配置建议** - 权限模式、编辑器集成、性能优化
+- **CLAUDE.md 编写指南** - 如何编写项目说明文档
+- **Prompt 编排技巧** - 如何有效地与 Claude 沟通
+- **避坑指南** - 避免常见的使用陷阱
+- **进阶技巧** - Agent 系统、Hooks、插件、Bridge 模式
+- **效率对比** - 不同方法的性能对比
+
+**特色**:
+- 基于 **198,000+ 行源码分析**
+- 实际案例和代码示例
+- 效率对比数据
+- 推荐工作流程
+
+**阅读时间**: 约 20-30 分钟
+
+**在线访问**: https://peggypan.github.io/claude-code-course/best-practices.html
+
+---
+
 ## 🚀 如何使用
 
 ### 方法 1：在线访问（推荐）
 
 1. **入门指南**: https://peggypan.github.io/claude-code-course/course-beginner.html
 2. **技术课程**: https://peggypan.github.io/claude-code-course/course-engineers.html
+3. **最佳实践**: https://peggypan.github.io/claude-code-course/best-practices.html
 
 ### 方法 2：本地访问
 
@@ -117,10 +149,13 @@
 
 ## 📝 更新日志
 
-- **2025-04-07**: 
+- **2025-04-07**:
   - 创建入门指南（普通用户版）
   - 优化工程师版课程样式
   - 修复标题装饰线问题
+  - **新增最佳实践指南**（基于源码分析）
+  - 将 BEST_PRACTICES.md 转换为 HTML 页面
+  - 更新 README 文档链接
 
 - **2025-04-03**:
   - 完成工程师版 27 模块课程
