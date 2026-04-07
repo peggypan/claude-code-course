@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Code 入门指南 — 普通用户版</title>
+  
+  <!-- Premium Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    /* ── CSS VARIABLES ─────────────────────────────────────────── */
+    :root {
+      /* PALETTE */
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #13131a;
+      --bg-tertiary: #1a1a24;
+      --bg-elevated: #222230;
+      
+      --text-primary: #f4f4f5;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      
+      --accent-coral: #ff6b5b;
+      --accent-teal: #4fd1c5;
+      --accent-violet: #a78bfa;
+      --accent-amber: #fbbf24;
+      
+      /* GRADIENTS */
+      --gradient-primary: linear-gradient(135deg, #ff6b5b 0%, #ff8a71 100%);
+      --gradient-code: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      
+      /* TYPOGRAPHY */
+      --font-display: 'Outfit', system-ui, sans-serif;
+      --font-body: 'Figtree', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+      
+      /* SPACING */
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2rem;
+      --space-2xl: 3rem;
+      --space-3xl: 4rem;
+      
+      /* BORDERS & RADIUS */
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --radius-full: 9999px;
+      
+      /* SHADOWS */
+      --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+      --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.15);
+      --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.2);
+      --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.25);
+    }
+    
+    /* ── RESET & BASE ─────────────────────────────────────────── */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+    
+    /* ── NAVIGATION ─────────────────────────────────────────── */
+    .nav-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      padding: 1rem 2rem;
+      background: rgba(10, 10, 15, 0.95);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .nav-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .nav-title {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .nav-dots {
+      display: flex;
+      gap: 0.75rem;
+    }
+    
+    .nav-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .nav-dot:hover {
+      background: rgba(255, 255, 255, 0.4);
+      transform: scale(1.1);
+    }
+    
+    .nav-dot.active {
+      background: var(--accent-coral);
+      border-color: var(--accent-coral);
+      box-shadow: 0 0 10px rgba(255, 107, 91, 0.5);
+    }
+    
+    /* ── PROGRESS BAR ─────────────────────────────────────────── */
+    .progress-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      z-index: 1001;
+    }
+    
+    .progress-bar {
+      height: 100%;
+      background: var(--gradient-primary);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    
+    /* ── MAIN CONTENT ─────────────────────────────────────────── */
+    .main {
+      padding-top: 100px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    /* ── MODULE ──────────────────────────────────────────────── */
+    .module {
+      min-height: 100vh;
+      padding: 4rem 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      scroll-snap-align: start;
+    }
+    
+    .module-content {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    .module-header {
+      margin-bottom: 3rem;
+      text-align: center;
+    }
+    
+    .module-number {
+      font-family: var(--font-display);
+      font-size: 5rem;
+      font-weight: 800;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      opacity: 0.3;
+      line-height: 1;
+      margin-bottom: 1rem;
+      display: block;
+    }
+    
+    .module-title {
+      position: relative;
+      z-index: 1;
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      background: var(--bg-primary);
+      font-family: var(--font-display);
+      font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 0.75rem;
+    }
+    
+    .module-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    
+    /* ── SCREENS ─────────────────────────────────────────────── */
+    .screen {
+      margin-bottom: 4rem;
+      padding: 2.5rem;
+      background: var(--bg-secondary);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-xl);
+    }
+    
+    .screen-title {
+      font-family: var(--font-display);
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      color: var(--accent-coral);
+    }
+    
+    /* ── CONTENT BLOCKS ───────────────────────────────────────── */
+    .content-block {
+      margin-bottom: 2rem;
+    }
+    
+    .content-block p {
+      font-size: 1.1rem;
+      line-height: 1.8;
+      margin-bottom: 1rem;
+    }
+    
+    .content-block h3 {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin: 1.5rem 0 1rem 0;
+      color: var(--accent-teal);
+    }
+    
+    /* ── FEATURE LIST ─────────────────────────────────────────── */
+    .feature-list {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .feature-list li {
+      padding: 0.75rem 0;
+      padding-left: 2rem;
+      position: relative;
+      font-size: 1.05rem;
+      line-height: 1.7;
+    }
+    
+    .feature-list li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: var(--accent-teal);
+      font-weight: 700;
+    }
+    
+    /* ── ANALOGY BOX ──────────────────────────────────────────── */
+    .analogy-box {
+      background: linear-gradient(135deg, rgba(255, 107, 91, 0.1) 0%, rgba(255, 138, 113, 0.05) 100%);
+      border: 1px solid rgba(255, 107, 91, 0.3);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      margin: 2rem 0;
+    }
+    
+    .analogy-box h4 {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--accent-coral);
+    }
+    
+    .analogy-box p {
+      font-size: 1.05rem;
+      line-height: 1.8;
+      margin-bottom: 1rem;
+    }
+    
+    /* ── COMPARISON TABLE ─────────────────────────────────────── */
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 2rem 0;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    
+    .comparison-table th {
+      background: var(--accent-coral);
+      color: white;
+      padding: 1rem;
+      text-align: left;
+      font-weight: 600;
+    }
+    
+    .comparison-table td {
+      padding: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .comparison-table tr:last-child td {
+      border-bottom: none;
+    }
+    
+    /* ── FLOW DIAGRAM ─────────────────────────────────────────── */
+    .simple-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin: 2rem 0;
+      padding: 2rem;
+      background: var(--bg-tertiary);
+      border-radius: var(--radius-lg);
+      flex-wrap: wrap;
+    }
+    
+    .flow-step {
+      background: var(--bg-elevated);
+      border: 2px solid var(--accent-coral);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem 2rem;
+      text-align: center;
+      min-width: 150px;
+    }
+    
+    .flow-step-number {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent-coral);
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+    
+    .flow-step-text {
+      font-size: 1rem;
+      font-weight: 500;
+    }
+    
+    .flow-arrow {
+      font-size: 2rem;
+      color: var(--accent-coral);
+    }
+    
+    /* ── TOOL CARD ────────────────────────────────────────────── */
+    .tool-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
+    
+    .tool-card {
+      background: var(--bg-tertiary);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      transition: all 0.3s ease;
+    }
+    
+    .tool-card:hover {
+      border-color: var(--accent-coral);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .tool-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .tool-name {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--accent-teal);
+    }
+    
+    .tool-description {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    
+    /* ── PERMISSION LEVEL ─────────────────────────────────────── */
+    .permission-level {
+      margin: 1.5rem 0;
+      padding: 1.5rem;
+      border-radius: var(--radius-lg);
+      border-left: 4px solid;
+    }
+    
+    .permission-level.safe {
+      background: rgba(79, 209, 197, 0.1);
+      border-left-color: var(--accent-teal);
+    }
+    
+    .permission-level.medium {
+      background: rgba(251, 191, 36, 0.1);
+      border-left-color: var(--accent-amber);
+    }
+    
+    .permission-level.dangerous {
+      background: rgba(255, 107, 91, 0.1);
+      border-left-color: var(--accent-coral);
+    }
+    
+    .permission-level h4 {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .permission-level p {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    
+    /* ── QUIZ (SIMPLIFIED) ─────────────────────────────────────── */
+    .quiz-container {
+      background: var(--bg-tertiary);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      margin: 2rem 0;
+    }
+    
+    .quiz-question {
+      margin-bottom: 2rem;
+    }
+    
+    .quiz-question h4 {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .quiz-option {
+      background: var(--bg-elevated);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md);
+      padding: 1rem 1.5rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: left;
+      font-family: var(--font-body);
+      font-size: 1rem;
+      color: var(--text-primary);
+    }
+    
+    .quiz-option:hover {
+      border-color: var(--accent-coral);
+      background: rgba(255, 107, 91, 0.05);
+    }
+    
+    .quiz-option.selected {
+      border-color: var(--accent-coral);
+      background: rgba(255, 107, 91, 0.1);
+    }
+    
+    .quiz-buttons {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    
+    .quiz-check-btn, .quiz-reset-btn {
+      background: var(--accent-coral);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 0.75rem 1.5rem;
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .quiz-reset-btn {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .quiz-check-btn:hover, .quiz-reset-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    
+    /* ── TIPS BOX ─────────────────────────────────────────────── */
+    .tips-box {
+      background: linear-gradient(135deg, rgba(79, 209, 197, 0.1) 0%, rgba(167, 139, 250, 0.05) 100%);
+      border: 1px solid rgba(79, 209, 197, 0.3);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      margin: 2rem 0;
+    }
+    
+    .tips-box h4 {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--accent-teal);
+    }
+    
+    .tips-box ul {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .tips-box li {
+      padding: 0.5rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+    }
+    
+    .tips-box li::before {
+      content: "💡";
+      position: absolute;
+      left: 0;
+    }
+    
+    /* ── RESPONSIVE ───────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .nav-content {
+        flex-direction: column;
+        gap: 1rem;
+      }
+      
+      .module {
+        padding: 2rem 1rem;
+      }
+      
+      .screen {
+        padding: 1.5rem;
+      }
+      
+      .simple-flow {
+        flex-direction: column;
+      }
+      
+      .flow-arrow {
+        transform: rotate(90deg);
+      }
+    }
+  </style>
+</head>
+<body>
+  
+  <!-- Progress Bar -->
+  <div class="progress-container">
+    <div class="progress-bar" id="progress-bar"></div>
+  </div>
+  
+  <!-- Navigation -->
+  <nav class="nav-container">
+    <div class="nav-content">
+      <div class="nav-title">Claude Code 入门指南</div>
+      <div class="nav-dots">
+        <button class="nav-dot active" data-target="module-1" title="模块1"></button>
+        <button class="nav-dot" data-target="module-2" title="模块2"></button>
+        <button class="nav-dot" data-target="module-3" title="模块3"></button>
+        <button class="nav-dot" data-target="module-4" title="模块4"></button>
+        <button class="nav-dot" data-target="module-5" title="模块5"></button>
+        <button class="nav-dot" data-target="module-6" title="模块6"></button>
+      </div>
+    </div>
+  </nav>
+  
+  <!-- Main Content -->
+  <main class="main" id="main">
+    
+    <!-- 模块1: Claude Code 是什么？ -->
+    <section class="module" id="module-1">
+      <div class="module-content">
+        <div class="module-header">
+          <span class="module-number">01</span>
+          <h1 class="module-title">Claude Code 是什么？</h1>
+          <p class="module-subtitle">了解 Claude Code 如何成为你的编程助手</p>
+        </div>
+        
+        <!-- Screen 1: 产品介绍 -->
+        <div class="screen">
+          <h2 class="screen-title">🤔 你可能已经知道的...</h2>
+          <div class="content-block">
+            <p>你可能已经在网页上用过 ChatGPT 或 Claude 聊天，它们很聪明，但有一个限制：<strong>它们只能"说话"，不能"做事"</strong>。</p>
+            <p>你想让 AI 帮你写代码、修改文件、运行程序，但它们做不到。</p>
+          </div>
+          
+          <div class="analogy-box">
+            <h4>💡 打个比方</h4>
+            <p>传统的 AI 聊天机器人像是一个<strong>只能说话的顾问</strong>，你可以问它问题，它会给你答案，但它不能帮你动手做事。</p>
+            <p><strong>Claude Code 就像一个"智能管家"</strong>，它不仅能和你聊天，还能帮你打开文件、修改代码、运行程序、执行各种操作。</p>
+          </div>
+          
+          <div class="content-block">
+            <h3>🎯 Claude Code 的独特之处</h3>
+            <table class="comparison-table">
+              <tr>
+                <th>传统 AI 聊天</th>
+                <th>Claude Code</th>
+              </tr>
+              <tr>
+                <td>只能聊天</td>
+                <td>能聊天 + 能做事</td>
+              </tr>
+              <tr>
+                <td>你手动复制代码</td>
+                <td>直接修改你的文件</td>
+              </tr>
+              <tr>
+                <td>在浏览器中使用</td>
+                <td>在你的电脑终端中使用</td>
+              </tr>
+              <tr>
+                <td>不了解你的项目</td>
+                <td>完全了解你的代码</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Screen 2: 核心概念 -->
+        <div class="screen">
+          <h2 class="screen-title">🛠️ Claude Code 能做什么？</h2>
+          <div class="content-block">
+            <p>Claude Code 不仅仅是一个聊天机器人，它是一个<strong>能执行操作的 AI 助手</strong>。</p>
+          </div>
+          
+          <div class="simple-flow">
+            <div class="flow-step">
+              <span class="flow-step-number">1</span>
+              <span class="flow-step-text">你用自然语言描述需求</span>
+            </div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-step">
+              <span class="flow-step-number">2</span>
+              <span class="flow-step-text">Claude 理解并制定计划</span>
+            </div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-step">
+              <span class="flow-step-number">3</span>
+              <span class="flow-step-text">Claude 使用工具完成操作</span>
+            </div>
+          </div>
+          
+          <div class="content-block">
+            <h3>📝 典型使用场景</h3>
+            <ul class="feature-list">
+              <li><strong>代码审查：</strong>"帮我看看这段代码有什么问题"</li>
+              <li><strong>修改功能：</strong>"把登录按钮的颜色改成蓝色"</li>
+              <li><strong>调试错误：</strong>"为什么这个测试失败了？"</li>
+              <li><strong>重构代码：</strong>"帮我把这个函数拆分成更小的函数"</li>
+              <li><strong>运行命令：</strong>"运行测试并告诉我结果"</li>
+            </ul>
+          </div>
+        </div>
+        
+        <!-- Screen 3: 为什么用 Claude Code？ -->
+        <div class="screen">
+          <h2 class="screen-title">🚀 为什么选择 Claude Code？</h2>
+          <div class="content-block">
+            <h3>💪 强大之处</h3>
+            <ul class="feature-list">
+              <li><strong>深度理解代码：</strong>不是简单匹配文本，而是真正理解代码逻辑</li>
+              <li><strong>上下文感知：</strong>了解整个项目结构，不是孤立地看单个文件</li>
+              <li><strong>智能决策：</strong>能判断什么时候该做什么，什么时候该问你</li>
+              <li><strong>学习你的习惯：</strong>随着使用越久，越了解你的项目和工作方式</li>
+            </ul>
+          </div>
+          
+          <div class="tips-box">
+            <h4>💡 适合谁使用？</h4>
+            <ul>
+              <li><strong>编程新手：</strong>学习写代码的最佳助手</li>
+              <li><strong>经验开发者：</strong>提高效率，减少重复劳动</li>
+              <li><strong>项目负责人：</strong>快速理解代码库，做出决策</li>
+              <li><strong>任何想用 AI 帮助编程的人</strong></li>
+            </ul>
+          </div>
+        </div>
+        
+        <!-- Quiz -->
+        <div class="screen">
+          <h2 class="screen-title">📝 小测验</h2>
+          <div class="quiz-container" id="quiz-module-1">
+            <div class="quiz-question">
+              <h4>1. Claude Code 和传统 AI 聊天机器人的主要区别是什么？</h4>
+              <div class="quiz-options">
+                <button class="quiz-option" onclick="selectOption(this)" data-value="a">
+                  Claude Code 更聪明
+                </button>
+                <button class="quiz-option" onclick="selectOption(this)" data-value="b">
+                  Claude Code 能执行操作
+                </button>
+                <button class="quiz-option" onclick="selectOption(this)" data-value="c">
+                  Claude Code 更贵
+                </button>
+                <button class="quiz-option" onclick="selectOption(this)" data-value="d">
+                  Claude Code 需要联网
+                </button>
+              </div>
+            </div>
+            
+            <div class="quiz-buttons">
+              <button class="quiz-check-btn" onclick="checkQuiz('quiz-module-1', 'b')">检查答案</button>
+              <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module-1')">重置</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- 模块2: 如何与 Claude 对话 -->
+    <section class="module" id="module-2">
+      <div class="module-content">
+        <div class="module-header">
+          <span class="module-number">02</span>
+          <h1 class="module-title">如何与 Claude 对话</h1>
+          <p class="module-subtitle">理解对话循环和消息类型</p>
+        </div>
+        
+        <div class="screen">
+          <h2 class="screen-title">💬 对话的基本流程</h2>
+          <div class="content-block">
+            <p>使用 Claude Code 就像和一个聪明的助手聊天，只不过这个助手还能帮你做事。</p>
+          </div>
+          
+          <div class="analogy-box">
+            <h4>🔄 对话循环</h4>
+            <p>想象你在餐厅点餐：</p>
+            <ol style="margin-left: 1.5rem; margin-top: 1rem;">
+              <li><strong>你：</strong>看菜单，思考吃什么</li>
+              <li><strong>服务员：</strong>记录你的订单</li>
+              <li><strong>厨房：</strong>准备菜品</li>
+              <li><strong>服务员：</strong>把菜端给你</li>
+              <li><strong>你：</strong>享受美食，可能再点更多</li>
+            </ol>
+          </div>
+          
+          <div class="simple-flow">
+            <div class="flow-step">
+              <span class="flow-step-number">你</span>
+              <span class="flow-step-text">输入需求</span>
+            </div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-step">
+              <span class="flow-step-number">Claude</span>
+              <span class="flow-step-text">理解并使用工具</span>
+            </div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-step">
+              <span class="flow-step-number">系统</span>
+              <span class="flow-step-text">执行操作</span>
+            </div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-step">
+              <span class="flow-step-number">Claude</span>
+              <span class="flow-step-text">告诉你结果</span>
+            </div>
+          </div>
+          
+          <div class="tips-box">
+            <h4>💡 实用技巧</h4>
+            <ul>
+              <li>用<strong>自然语言</strong>描述你的需求，就像和朋友说话一样</li>
+              <li>可以<strong>逐步描述</strong>，不需要一次说清楚所有细节</li>
+              <li>遇到不确定的时候，<strong>直接问 Claude</strong></li>
+              <li>Claude 会<strong>主动问你的意见</strong>，比如"要修改哪一行？"</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="screen">
+          <h2 class="screen-title">🔍 理解 Claude 的响应</h2>
+          <div class="content-block">
+            <h3>Claude 的回复通常包含：</h3>
+            <ul class="feature-list">
+              <li><strong>确认理解：</strong>"好的，我来帮你修改登录按钮的颜色"</li>
+              <li><strong>执行操作：</strong>显示使用了哪些工具（Read、Edit 等）</li>
+              <li><strong>解释原因：</strong>"我选择了蓝色 #3B82F6，因为这样更醒目"</li>
+              <li><strong>展示结果：</strong>显示修改后的代码或文件</li>
+              <li><strong>询问意见：</strong>"这样修改可以吗？"</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- 模块3: Claude 的工具箱 -->
+    <section class="module" id="module-3">
+      <div class="module-content">
+        <div class="module-header">
+          <span class="module-number">03</span>
+          <h1 class="module-title">Claude 的工具箱</h1>
+          <p class="module-subtitle">认识常用工具，理解它们如何协作</p>
+        </div>
+        
+        <div class="screen">
+          <h2 class="screen-title">🧰 Claude 的工具箱</h2>
+          <div class="content-block">
+            <p>Claude Code 之所以强大，是因为它有一整套工具可以调用。就像瑞士军刀一样，不同情况用不同工具。</p>
+          </div>
+          
+          <div class="tool-grid">
+            <div class="tool-card">
+              <div class="tool-icon">📖</div>
+              <div class="tool-name">Read 工具</div>
+              <div class="tool-description">读取文件内容，了解你的代码</div>
+            </div>
+            <div class="tool-card">
+              <div class="tool-icon">✏️</div>
+              <div class="tool-name">Edit 工具</div>
+              <div class="tool-description">精确修改文件的特定部分</div>
+            </div>
+            <div class="tool-card">
+              <div class="tool-icon">💻</div>
+              <div class="tool-name">Bash 工具</div>
+              <div class="tool-description">运行命令，执行程序</div>
+            </div>
+            <div class="tool-card">
+              <div class="tool-icon">🔍</div>
+              <div class="tool-name">Search 工具</div>
+              <div class="tool-description">在代码库中搜索内容</div>
+            </div>
+          </div>
+          
+          <div class="analogy-box">
+            <h4>🎬 实际例子</h4>
+            <p><strong>你说：</strong>"把所有 .js 文件中的 console.log() 删掉"</p>
+            <p><strong>Claude 的思考过程：</strong></p>
+            <ol style="margin-left: 1.5rem;">
+              <li>用 <strong>Search 工具</strong>找到所有 .js 文件</li>
+              <li>用 <strong>Read 工具</strong>查看每个文件的内容</li>
+              <li>用 <strong>Edit 工具</strong>删除 console.log() 这行</li>
+              <li>告诉你："已经处理了 15 个文件，删除了 23 处 console.log()"</li>
+            </ol>
+          </div>
+        </div>
+        
+        <div class="screen">
+          <h2 class="screen-title">⚙️ 工具如何协作</h2>
+          <div class="content-block">
+            <h3>工具不是单独工作的，它们会配合完成复杂任务</h3>
+          </div>
+          
+          <div class="tips-box">
+            <h4>💡 工具协作的例子</h4>
+            <p><strong>场景：</strong>"为什么我的测试失败了？"</p>
+            <p><strong>Claude 的操作：</strong></p>
+            <ol style="margin-left: 1.5rem;">
+              <li><strong>Read：</strong>查看测试文件，了解测试内容</li>
+              <li><strong>Bash：</strong>运行测试，看具体错误信息</li>
+              <li><strong>Read：</strong>查看被测试的代码</li>
+              <li><strong>Edit：</strong>修复发现的 bug</li>
+              <li><strong>Bash：</strong>再次运行测试，确认修复成功</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- 模块4: 为什么需要确认操作？ -->
+    <section class="module" id="module-4">
+      <div class="module-content">
+        <div class="module-header">
+          <span class="module-number">04</span>
+          <h1 class="module-title">为什么需要确认操作？</h1>
+          <p class="module-subtitle">理解权限系统和安全机制</p>
+        </div>
+        
+        <div class="screen">
+          <h2 class="screen-title">🔒 安全第一</h2>
+          <div class="content-block">
+            <p>Claude Code 会帮你执行各种操作，但不是所有操作都是自动的。为了安全，有些操作需要你的<strong>明确确认</strong>。</p>
+          </div>
+          
+          <div class="permission-level safe">
+            <h4>✅ 安全操作（自动执行）</h4>
+            <p>这些操作 Claude 会自动执行，不需要问你：</p>
+            <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+              <li>读取文件内容</li>
+              <li>搜索代码</li>
+              <li>查看项目结构</li>
+            </ul>
+          </div>
+          
+          <div class="permission-level medium">
+            <h4>⚠️ 中等风险（需要确认）</h4>
+            <p>这些操作 Claude 会先问你：</p>
+            <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+              <li>修改文件内容</li>
+              <li>创建新文件</li>
+              <li>运行测试程序</li>
+            </ul>
+          </div>
+          
+          <div class="permission-level dangerous">
+            <h4>⛔ 高风险操作（严格确认）</h4>
+            <p>这些操作需要你<strong>明确同意</strong>：</p>
+            <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+              <li>删除文件或文件夹</li>
+              <li>修改重要配置</li>
+              <li>执行危险命令</li>
+              <li>推送到远程仓库</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="screen">
+          <h2 class="screen-title">🛡️ 为什么这样设计？</h2>
+          <div class="content-block">
+            <h3>保护你的代码和数据</h3>
+            <ul class="feature-list">
+              <li><strong>防止误操作：</strong>即使 Claude 理解错了，也有机会纠正</li>
+              <li><strong>让你保持控制：</strong>重要的决定权在你手中</li>
+              <li><strong>学习机会：</strong>确认的过程也是学习 Claude 做什么的过程</li>
+              <li><strong>可追溯性：</strong>所有操作都有记录，知道做了什么</li>
+            </ul>
+          </div>
+          
+          <div class="tips-box">
+            <h4>💡 实用建议</h4>
+            <ul>
+              <li>第一次使用时，仔细阅读 Claude 的操作说明</li>
+              <li>不确定时，选择"拒绝"而不是"允许"</li>
+              <li>可以设置"记住选择"，对相同操作自动确认</li>
+              <li>定期审查 Claude 的操作历史</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- 模块5: 个性化配置 -->
+    <section class="module" id="module-5">
+      <div class="module-content">
+        <div class="module-header">
+          <span class="module-number">05</span>
+          <h1 class="module-title">个性化配置</h1>
+          <p class="module-subtitle">让 Claude Code 更懂你</p>
+        </div>
+        
+        <div class="screen">
+          <h2 class="screen-title">⚙️ 配置系统</h2>
+          <div class="content-block">
+            <p>Claude Code 可以根据你的喜好进行配置，让它更懂你的需求。</p>
+          </div>
+          
+          <div class="content-block">
+            <h3>📝 常用配置选项</h3>
+            <ul class="feature-list">
+              <li><strong>默认编辑器：</strong>指定你喜欢的编辑器（VS Code、Sublime 等）</li>
+              <li><strong>权限模式：</strong>选择自动确认或手动确认</li>
+              <li><strong>显示设置：</strong>字体大小、颜色主题</li>
+              <li><strong>项目配置：</strong>为不同项目设置不同的行为</li>
+            </ul>
+          </div>
+          
+          <div class="analogy-box">
+            <h4>🎯 就像设置手机</h4>
+            <p>配置 Claude Code 就像设置手机一样：</p>
+            <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+              <li>选择<strong>默认语言</strong>（中文/英文）</li>
+              <li>调整<strong>字体大小</strong>让你更舒服</li>
+              <li>设置<strong>通知方式</strong>（重要提醒 vs 全部静音）</li>
+              <li>配置<strong>快捷键</strong>提高效率</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="screen">
+          <h2 class="screen-title">🎨 优化你的体验</h2>
+          <div class="content-block">
+            <h3>让 Claude 更懂你</h3>
+          <p>你可以告诉 Claude：</p>
+            <ul style="margin-left: 1.5rem;">
+              <li>"我的项目使用 TypeScript，请按 TypeScript 的规范写代码"</li>
+              <li>"我习惯用 2 个空格缩进，不要用 4 个空格"</li>
+              <li>"这个项目有特殊的构建流程，需要先运行 npm install"</li>
+            </ul>
+          </div>
+          
+          <div class="tips-box">
+            <h4>💡 最佳实践</h4>
+            <ul>
+              <li>在项目根目录创建 <code>CLAUDE.md</code> 文件</li>
+              <li>写清楚项目的重要信息和规则</li>
+              <li>这样 Claude 会自动读取并遵守这些规则</li>
+              <li>大大提高 Claude 的准确性和效率</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- 模块6: 实用技巧和最佳实践 -->
+    <section class="module" id="module-6">
+      <div class="module-content">
+        <div class="module-header">
+          <span class="module-number">06</span>
+          <h1 class="module-title">实用技巧和最佳实践</h1>
+          <p class="module-subtitle">避开常见陷阱，提高使用效率</p>
+        </div>
+        
+        <div class="screen">
+          <h2 class="screen-title">🚀 常见使用模式</h2>
+          <div class="content-block">
+            <h3>从简单开始，逐步深入</h3>
+            <ul class="feature-list">
+              <li><strong>第一次使用：</strong>让 Claude 做简单的任务，比如"读取 package.json"</li>
+              <li><strong>建立信任：</strong>随着成功交互增多，你会更信任 Claude</li>
+              <li><strong>复杂任务：</strong>当信任建立后，可以让 Claude 做更复杂的操作</li>
+            </ul>
+          </div>
+          
+          <div class="content-block">
+            <h3>💬 有效沟通技巧</h3>
+            <ul class="feature-list">
+              <li><strong>具体明确：</strong>"修改登录按钮"比"修改界面"更好</li>
+              <li><strong>提供背景：</strong>"这是用户认证模块"帮助 Claude 理解上下文</li>
+              <li><strong>分步描述：</strong>复杂的任务可以分解成多个简单步骤</li>
+              <li><strong>举例说明：</strong>"类似于这个文件的方式"让 Claude 有参考</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="screen">
+          <h2 class="screen-title">⚠️ 避坑指南</h2>
+          <div class="permission-level dangerous">
+            <h4>❌ 不要这样做</h4>
+            <p>这些操作可能导致问题：</p>
+            <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+              <li>让 Claude 同时修改多个文件（容易混乱）</li>
+              <li>在重要项目上第一次就做大的重构</li>
+              <li>忽略 Claude 的警告直接执行</li>
+              <li>在没有版本控制的情况下操作</li>
+            </ul>
+          </div>
+          
+          <div class="permission-level safe">
+            <h4>✅ 推荐做法</h4>
+            <p>这些做法更安全：</p>
+            <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+              <li>先在测试项目上尝试</li>
+              <li>使用 Git 管理代码版本，方便回滚</li>
+              <li>重要操作前先让 Claude 说明计划</li>
+              <li>定期保存进度，提交到 Git</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="screen">
+          <h2 class="screen-title">📚 继续学习</h2>
+          <div class="content-block">
+            <h3>学习资源</h3>
+            <ul class="feature-list">
+              <li><strong>官方文档：</strong> https://docs.anthropic.com/claude-code</li>
+              <li><strong>GitHub 仓库：</strong> https://github.com/anthropics/claude-code</li>
+              <li><strong>社区讨论：</strong>参与社区，学习他人的经验</li>
+              <li><strong>实践项目：</strong>最好的学习方式是实际使用</li>
+            </ul>
+          </div>
+          
+          <div class="tips-box">
+            <h4>🎯 记住</h4>
+            <p>Claude Code 是一个强大的工具，但它只是助手。你是项目的负责人，重要的决定权在你手中。善用 Claude Code，它会成为你编程路上的最佳伙伴！</p>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+  </main>
+  
+  <script>
+    // 简化的 JavaScript
+    const navDots = document.querySelectorAll('.nav-dot');
+    const modules = document.querySelectorAll('.module');
+    const progressBar = document.getElementById('progress-bar');
+    
+    // 导航点击
+    navDots.forEach(dot => {
+      dot.addEventListener('click', () => {
+        const targetId = dot.dataset.target;
+        const targetModule = document.getElementById(targetId);
+        if (targetModule) {
+          targetModule.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    });
+    
+    // 滚动更新导航
+    function updateNavigation() {
+      const scrollTop = window.scrollY;
+      const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+      progressBar.style.width = progress + '%';
+      
+      navDots.forEach((dot, index) => {
+        const targetId = dot.dataset.target;
+        const targetModule = document.getElementById(targetId);
+        if (targetModule) {
+          const rect = targetModule.getBoundingClientRect();
+          const isVisible = rect.top < window.innerHeight / 2 && rect.bottom > window.innerHeight / 2;
+          dot.classList.toggle('active', isVisible);
+        }
+      });
+    }
+    
+    window.addEventListener('scroll', updateNavigation);
+    updateNavigation();
+    
+    // 简化的测验功能
+    function selectOption(button) {
+      const parent = button.parentElement;
+      parent.querySelectorAll('.quiz-option').forEach(opt => opt.classList.remove('selected'));
+      button.classList.add('selected');
+    }
+    
+    function checkQuiz(quizId, correctAnswer) {
+      const container = document.getElementById(quizId);
+      const selected = container.querySelector('.quiz-option.selected');
+      if (!selected) {
+        alert('请先选择一个答案');
+        return;
+      }
+      
+      const answer = selected.dataset.value;
+      if (answer === correctAnswer) {
+        selected.style.background = 'rgba(79, 209, 197, 0.2)';
+        selected.style.borderColor = 'var(--accent-teal)';
+        alert('✅ 正确！');
+      } else {
+        selected.style.background = 'rgba(255, 107, 91, 0.2)';
+        selected.style.borderColor = 'var(--accent-coral)';
+        alert('❌ 不太对，再试试？');
+      }
+    }
+    
+    function resetQuiz(quizId) {
+      const container = document.getElementById(quizId);
+      container.querySelectorAll('.quiz-option').forEach(opt => {
+        opt.classList.remove('selected');
+        opt.style.background = '';
+        opt.style.borderColor = '';
+      });
+    }
+  </script>
+</body>
+</html>
